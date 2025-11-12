@@ -14,6 +14,7 @@
         <h1>🐄 Dairy Farm</h1>
         <p>Management System Login</p>
       </div>
+
       <form id="loginForm">
         <div class="form-group">
           <label for="role">Select Role</label>
@@ -38,28 +39,27 @@
 
         <button type="submit" class="btn-primary">Login</button>
       </form>
-
-
+    </div>
   </div>
 
-  <!-- Script -->
-  <script src="{% static 'js/scripts.js' %}"></script>
-      <div id="successModal" class="modal">
-        <div class="modal-content success">
-            <div class="modal-icon">✓</div>
-            <h3>Success!</h3>
-            <p id="successMessage">Your action was completed successfully.</p>
-            <button onclick="closeModal()" class="btn-primary">OK</button>
-        </div>
+  <div id="successModal" class="modal">
+    <div class="modal-content success">
+      <div class="modal-icon">✓</div>
+      <h3>Success!</h3>
+      <p id="successMessage">Your action was completed successfully.</p>
+      <button class="btn-primary" onclick="closeModal()">OK</button>
     </div>
+  </div>
 
-    <div id="errorModal" class="modal">
-        <div class="modal-content error">
-            <div class="modal-icon">✗</div>
-            <h3>Operation Failed</h3>
-            <p id="errorMessage">An error occurred. Please try again.</p>
-            <button onclick="closeModal()" class="btn-primary">OK</button>
-        </div>
+  <div id="errorModal" class="modal">
+    <div class="modal-content error">
+      <div class="modal-icon">✗</div>
+      <h3>Operation Failed</h3>
+      <p id="errorMessage">An error occurred. Please try again.</p>
+      <button class="btn-primary" onclick="closeModal()">OK</button>
     </div>
+  </div>
+
+  <script src="{% static 'js/scripts.js' %}"></script>
 </body>
 </html>
