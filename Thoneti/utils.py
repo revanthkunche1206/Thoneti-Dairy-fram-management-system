@@ -99,14 +99,21 @@ def calculate_and_update_salary(employee, attendance_date):
     return salary
 
 
-def calculate_total_milk_distributed(daily_operations):
+def calculate_total_milk_distributed(daily_operations=None):
     """
     Calculates total milk distributed for the day by summing up
-    all MilkReceived records.
+    all MilkReceived records. If daily_operations is None, calculates system-wide total.
     """
-    return MilkReceived.objects.filter(
-        date=daily_operations.date
-    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+    if daily_operations:
+        return MilkReceived.objects.filter(
+            date=daily_operations.date
+        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+    else:
+        # System-wide total for today
+        from datetime import date
+        return MilkReceived.objects.filter(
+            date=date.today()
+        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
 
 def update_milk_distribution_totals(daily_operations):

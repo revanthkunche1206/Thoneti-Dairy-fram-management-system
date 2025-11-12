@@ -5,9 +5,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import login, logout, get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q , Sum
 from django.shortcuts import get_object_or_404
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from django.utils import timezone
 from django.views.generic import TemplateView
@@ -726,3 +726,105 @@ def _parse_date(input_date):
     if isinstance(input_date, date):
         return input_date
     return datetime.strptime(input_date, '%Y-%m-%d').date()
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def manager_dashboard_stats(request):
+    """
+    Provides aggregated data for the manager dashboard,
+    covering the last 7 days.
+    """
+    try:
+        manager = get_object_or_404(Manager, user=request.user)
+        today = date.today()
+        seven_days_ago = today - timedelta(days=6)
+
+        # 1. Get daily milk and expense data for the last 7 days
+        # We find all dates for this manager
+        operations = DailyOperations.objects.filter(
+            manager=manager,
+            date__gte=seven_days_ago,
+            date__lte=today
+        ).order_by('date')
+
+        # We also need to get all milk received on those dates,
+        # as the signal-based update might be flawed.
+        # A more robust way is to query MilkReceived directly.
+        # Filter by sellers under locations that have operations by this manager
+        locations = Location.objects.all()
+        sellers = Seller.objects.filter(location__in=locations, is_active=True)
+        all_milk_received = MilkReceived.objects.filter(
+            seller__in=sellers,
+            date__gte=seven_days_ago,
+            date__lte=today
+        ).values('date').annotate(
+            total_milk=Sum('quantity')
+        )
+
+        expenses = ExpenseRecord.objects.filter(
+            record__in=operations
+        ).values('date').annotate(
+            total_expense=Sum('amount')
+        )
+
+        # Get leftover sales
+        milk_dist = MilkDistribution.objects.filter(
+            record__in=operations
+        ).values('date').annotate(
+            leftover_sales=Sum('leftover_sales')
+        )
+
+        # 3. Format data for Chart.js
+        labels = [(seven_days_ago + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
+
+        # Use the direct MilkReceived query for milk data
+        milk_data = {item['date'].strftime('%Y-%m-%d'): item['total_milk'] or 0 for item in all_milk_received}
+        sales_data = {item['date'].strftime('%Y-%m-%d'): item['leftover_sales'] or 0 for item in milk_dist}
+        expense_data = {item['date'].strftime('%Y-%m-%d'): item['total_expense'] or 0 for item in expenses}
+
+        chart_data = {
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Total Milk (L)',
+                    'data': [float(milk_data.get(label, 0)) for label in labels],
+                    'borderColor': '#667eea',
+                    'fill': False,
+                    'tension': 0.1
+                },
+                {
+                    'label': 'Leftover Sales (₹)',
+                    'data': [float(sales_data.get(label, 0)) for label in labels],
+                    'borderColor': '#27ae60',
+                    'fill': False,
+                    'tension': 0.1
+                },
+                {
+                    'label': 'Total Expenses (₹)',
+                    'data': [float(expense_data.get(label, 0)) for label in labels],
+                    'borderColor': '#e74c3c',
+                    'fill': False,
+                    'tension': 0.1
+                }
+            ]
+        }
+
+        # 4. Get other stats
+        total_employees = Employee.objects.filter(manager=manager, is_active=True).count()
+        total_locations = Location.objects.count()
+
+        # Get today's stats from our prepared data
+        today_str = today.strftime('%Y-%m-%d')
+        today_milk = milk_data.get(today_str, 0)
+        today_expenses = expense_data.get(today_str, 0)
+
+        return Response({
+            'chart_data': chart_data,
+            'total_employees': total_employees,
+            'total_locations': total_locations,
+            'today_milk': today_milk,
+            'today_expenses': today_expenses
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)

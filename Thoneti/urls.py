@@ -43,4 +43,5 @@ urlpatterns = [
     path('api/admin/managers/add/', views.add_manager, name='add-manager'),
     path('api/admin/managers/', views.list_managers, name='list-managers'),
     path('api/admin/managers/<str:manager_id>/delete/', views.delete_manager, name='delete-manager'),
+    path('api/manager/dashboard-stats/', views.manager_dashboard_stats, name='manager-dashboard-stats'),
 ]

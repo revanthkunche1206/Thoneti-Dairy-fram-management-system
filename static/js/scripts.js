@@ -92,33 +92,35 @@ async function apiFetch(url, options = {}) {
   headers["Content-Type"] = "application/json";
   headers["X-CSRFToken"] = getCSRFToken();
   options.headers = headers;
-  
+
   const res = await fetch(url, options);
 
   if (res.status === 204) {
       return null;
   }
-  
-  if (!res.ok) {
-      let err;
-      try {
-          err = await res.json();
-      } catch (e) {
-          err = { detail: await res.text() };
-      }
 
-      console.error("API error:", err);
-      let message = 'An unknown server error occurred.';
-      if (typeof err === 'object' && err !== null) {
-          message = Object.values(err).flat().join(' ');
-      }
-      throw new Error(message);
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    if (res.ok) {
+      throw new Error('Invalid JSON response');
+    } else {
+      data = { detail: text };
+    }
   }
-  
-  if (res.status !== 204) {
-      return res.json();
+
+  if (!res.ok) {
+    console.error("API error:", data);
+    let message = 'An unknown server error occurred.';
+    if (typeof data === 'object' && data !== null) {
+      message = Object.values(data).flat().join(' ');
+    }
+    throw new Error(message);
   }
-  return null;
+
+  return data;
 }
 
 
@@ -944,6 +946,7 @@ document.addEventListener("DOMContentLoaded", () => {
           loadDatewiseData(selectedDate);
         }
       });
+      loadManagerDashboardStats();
       // Initial load
       const today = getCurrentDate();
       loadDailyDataForDate(today);
@@ -1028,3 +1031,144 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   
 });
+
+
+let managerChartInstance = null; // Global variable to hold the chart instance
+
+/**
+ * Fetches data from the dashboard-stats endpoint and populates
+ * the stat cards and the chart.
+ */
+async function loadManagerDashboardStats() {
+  try {
+    const data = await apiFetch(`${BASE_URL}/manager/dashboard-stats/`);
+
+    // 1. Populate the stat cards
+    document.getElementById("dashTodayMilk").textContent = parseFloat(data.today_milk).toFixed(2);
+    document.getElementById("dashTodayExpenses").textContent = parseFloat(data.today_expenses).toFixed(2);
+    document.getElementById("dashTotalEmployees").textContent = data.total_employees;
+    document.getElementById("dashTotalLocations").textContent = data.total_locations;
+
+    // 2. Initialize or update the chart
+    initializeManagerChart(data.chart_data);
+
+  } catch (error) {
+    console.error("Failed to load manager dashboard stats:", error);
+    showModal('errorModal', 'Could not load dashboard statistics.');
+  }
+}
+
+/**
+ * Initializes or updates the Chart.js instance for the manager dashboard.
+ * @param {object} chartData - The data object from the API (labels, datasets)
+ */
+// function initializeManagerChart(chartData) {
+//   const ctx = document.getElementById('managerStatsChart');
+//   if (!ctx) return; // Exit if chart canvas isn't on the page
+
+//   // If the chart instance already exists, destroy it before creating a new one
+//   if (managerChartInstance) {
+//     managerChartInstance.destroy();
+//   }
+
+//   // Create the new chart
+//   managerChartInstance = new Chart(ctx, {
+//     type: 'line', // Type of chart
+//     data: chartData, // Data from our API
+//     options: {
+//       responsive: true,
+//       maintainAspectRatio: false,
+//       scales: {
+//         y: {
+//           beginAtZero: true,
+//         }
+//       },
+//       plugins: {
+//         tooltip: {
+//           callbacks: {
+//             label: function(context) {
+//               let label = context.dataset.label || '';
+//               if (label) {
+//                 label += ': ';
+//               }
+//               let value = context.parsed.y;
+//               if (label.includes('(₹)')) {
+//                 label += `₹${value.toFixed(2)}`;
+//               } else if (label.includes('(L)')) {
+//                 label += `${value.toFixed(2)} L`;
+//               } else {
+//                 label += value;
+//               }
+//               return label;
+//             }
+//           }
+//         }
+//       }
+//     }
+//   });
+// }
+
+/**
+ * Initializes or updates the Chart.js instance for the manager dashboard.
+ * @param {object} chartData - The data object from the API (labels, datasets)
+ */
+function initializeManagerChart(chartData) {
+  const ctx = document.getElementById('managerStatsChart');
+  if (!ctx) return; // Exit if chart canvas isn't on the page
+
+  // If the chart instance already exists, destroy it before creating a new one
+  if (managerChartInstance) {
+    managerChartInstance.destroy();
+  }
+
+  // Create the new chart
+  managerChartInstance = new Chart(ctx, {
+    type: 'line', // Type of chart
+    data: chartData, // Data from our API
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        }
+      },
+      plugins: { // --- START OF ADDED/MODIFIED BLOCK ---
+        zoom: {
+          zoom: {
+            wheel: {
+              enabled: false, // Disables zooming with the mouse wheel
+            },
+            pinch: {
+              enabled: false, // Disables zooming on mobile
+            },
+            mode: 'xy',
+          },
+          pan: {
+            enabled: false, // Disables panning (dragging) the chart
+            mode: 'xy',
+          }
+        }, // --- END OF ADDED BLOCK ---
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              let value = context.parsed.y;
+              if (label.includes('(₹)')) {
+                label += `₹${value.toFixed(2)}`;
+              } else if (label.includes('(L)')) {
+                label += `${value.toFixed(2)} L`;
+              } else {
+                label += value;
+              }
+              return label;
+            }
+          }
+        }
+      }
+    }
+  });
+}
