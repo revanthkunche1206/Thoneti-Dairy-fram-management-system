@@ -132,6 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadLocations();
     loadLocationsForMilkDistribution();
     initializeGlobalDateSelector();
+    loadManagerPendingDistributions();
   }
 
   if (document.getElementById("employeeDashboard")) {
@@ -262,6 +263,7 @@ document.addEventListener("DOMContentLoaded", () => {
         showModal("successModal", "Milk distribution recorded!");
         e.target.reset();
         loadDatewiseData(getSelectedDate());
+        loadManagerPendingDistributions();
       } catch (error) {
         showModal("errorModal", error.message);
       }
@@ -447,28 +449,8 @@ document.addEventListener("DOMContentLoaded", () => {
     loadIncomingRequests();
     loadMyRequests();
     loadBorrowLendHistory();
+    loadPendingDistributions();
     updateDateInputs();
-  }
-
-  const milkReceivedForm = document.getElementById("milkReceivedForm");
-  if (milkReceivedForm) {
-    milkReceivedForm.addEventListener("submit", async e => {
-      e.preventDefault();
-      try {
-        const f = new FormData(e.target);
-        const data = {
-          quantity: parseFloat(f.get("quantity")),
-          date: getSelectedDate(),
-        };
-        await apiFetch(`${BASE_URL}/seller/milk-received/`, { method: "POST", body: JSON.stringify(data) });
-        showModal("successModal", "Milk received recorded!");
-        e.target.reset();
-        updateDateInputs();
-        loadSellerSummary();
-      } catch (error) {
-        showModal("errorModal", error.message);
-      }
-    });
   }
 
   const dailySalesForm = document.getElementById("dailySalesForm");
@@ -560,6 +542,70 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function loadPendingDistributions() {
+    try {
+        const records = await apiFetch(`${BASE_URL}/seller/pending-distributions/`);
+        populateSellerPendingDistributions(records);
+    } catch (error) {
+        console.error("Failed to load pending distributions:", error);
+    }
+  }
+
+  function populateSellerPendingDistributions(records) {
+    const container = document.getElementById("pendingDistributionsList");
+    container.innerHTML = "";
+    if (records.length === 0) {
+      container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No pending deliveries.</p>';
+      return;
+    }
+    
+    records.forEach(record => {
+      const card = document.createElement("div");
+      card.className = "request-card"; // Reuse existing style
+      
+      const from = record.manager_name ? `Manager (${record.manager_name})` : 'Farm';
+      let statusBadge = '';
+      let actionButton = '';
+
+      if (record.status === 'pending') {
+          statusBadge = '<span class="badge badge-pending">Pending</span>';
+          actionButton = `<button class="btn-secondary btn-success btn-small" onclick="handleStatusUpdate('${record.receipt_id}', 'received')">Mark as Received</button>
+                          <button class="btn-secondary btn-danger btn-small" style="margin-left: 5px;" onclick="handleStatusUpdate('${record.receipt_id}', 'not_received')">Not Received</button>`;
+      } else { // 'not_received'
+          statusBadge = '<span class="badge badge-danger" style="background: #f5c6cb; color: #721c24;">Not Received</span>';
+          actionButton = `<button class="btn-secondary btn-success btn-small" onclick="handleStatusUpdate('${record.receipt_id}', 'received')">Mark as Received</button>`;
+      }
+
+      card.innerHTML = `
+        <div class="request-info">
+          <h4>Delivery from ${from}</h4>
+          <p><strong>Quantity:</strong> ${record.quantity} Liters</p>
+          <p><strong>Date:</strong> ${record.date}</p>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+          ${statusBadge}
+          ${actionButton}
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+
+  window.handleStatusUpdate = async function(receiptId, newStatus) {
+    try {
+        await apiFetch(`${BASE_URL}/seller/milk-received/${receiptId}/update-status/`, {
+            method: 'POST',
+            body: JSON.stringify({ status: newStatus })
+        });
+        showModal("successModal", `Successfully marked as ${newStatus}!`);
+        loadPendingDistributions(); // Refresh this list
+        loadSellerSummary(); // Refresh the summary stats
+    } catch (error) {
+        showModal("errorModal", "Failed to update status: " + error.message);
+    }
+  }
+
   async function loadIncomingRequests() {
     try {
       const requests = await apiFetch(`${BASE_URL}/seller/milk-requests/incoming/`);
@@ -637,6 +683,45 @@ document.addEventListener("DOMContentLoaded", () => {
         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
           ${statusBadge}
           ${actionButton}
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+
+  async function loadManagerPendingDistributions() {
+    try {
+        const records = await apiFetch(`${BASE_URL}/manager/pending-distributions/`);
+        populateManagerPendingDistributions(records);
+    } catch (error) {
+        console.error("Failed to load manager pending distributions:", error);
+    }
+  }
+
+
+
+  function populateManagerPendingDistributions(records) {
+    const container = document.getElementById("managerPendingDistributionsList");
+    container.innerHTML = "";
+    if (records.length === 0) {
+      container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No pending distributions.</p>';
+      return;
+    }
+
+    records.forEach(record => {
+      const card = document.createElement("div");
+      card.className = "request-card";
+      
+      const locationName = record.seller_location_name || 'Unknown Location';
+      card.innerHTML = `
+        <div class="request-info">
+          <h4>To: ${record.seller_name} (${locationName})</h4>
+          <p><strong>Quantity:</strong> ${record.quantity} Liters</p>
+          <p><strong>Date:</strong> ${record.date}</p>
+        </div>
+        <div>
+          <span class="badge badge-pending">Pending</span>
         </div>
       `;
       container.appendChild(card);
@@ -743,7 +828,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.viewEmployeeDetails = function(employeeId) {
     showModal("successModal", `This is where you would show details for employee ${employeeId}.`);
-    // In a real app, you might open another modal or navigate to a detail page.
   };
 
 
@@ -867,7 +951,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (attendances.length > 0) {
           attendances.forEach(attendance => {
             const row = document.createElement("tr");
-            const statusClass = attendance.status === 'present' ? 'badge-accepted' : 'badge-danger'; // Using existing css classes
+            const statusClass = attendance.status === 'present' ? 'badge-accepted' : 'badge-danger';
             row.innerHTML = `
               <td>${attendance.date}</td>
               <td><span class="badge ${statusClass}">${attendance.status.charAt(0).toUpperCase() + attendance.status.slice(1)}</span></td>
@@ -894,8 +978,13 @@ document.addEventListener("DOMContentLoaded", () => {
       populateTable('expensesTable', data.expense_records, ['category', 'amount'], ['Category', 'Amount (₹)']);
       populateTable('medicineTable', data.medicine_records, ['medicine_name', 'cost'], ['Medicine Name', 'Cost (₹)']);
       populateTable('milkDistributionTable', data.milk_distribution, ['total_milk', 'leftover_milk', 'leftover_sales'], ['Total Milk (L)', 'Leftover Milk (L)', 'Leftover Sales (₹)']);
-      populateTable('milkReceivedTable', data.milk_received, ['seller_name', 'quantity', 'source'], ['Seller Name', 'Quantity (L)', 'Source']);
-      populateTable('dailyTotalsTable', data.daily_totals, ['seller_name', 'total_received', 'total_sold', 'revenue'], ['Seller Name', 'Cash Sales (₹)', 'Online Sales (₹)', 'Total Revenue (₹)']); // Updated headers to be clearer
+      
+      populateTable('milkReceivedTable', data.milk_received, 
+          ['seller_name', 'quantity', 'source', 'status'], 
+          ['Seller Name', 'Quantity (L)', 'Source', 'Status']
+      );
+
+      populateTable('dailyTotalsTable', data.daily_totals, ['seller_name', 'total_received', 'total_sold', 'revenue'], ['Seller Name', 'Cash Sales (₹)', 'Online Sales (₹)', 'Total Revenue (₹)']); 
       populateTable('attendanceTable', data.attendance, ['employee_name', 'status'], ['Employee Name', 'Status']);
 
     } catch (error) {
@@ -921,13 +1010,23 @@ document.addEventListener("DOMContentLoaded", () => {
       fields.forEach(field => {
         const cell = document.createElement("td");
         let value = item[field];
-        if (typeof value === 'number' || (!isNaN(parseFloat(value)) && (field.includes('cost') || field.includes('amount') || field.includes('received') || field.includes('sold') || field.includes('revenue') || field.includes('quantity') || field.includes('milk')))) {
-            value = parseFloat(value).toFixed(2);
-            if (field.includes('cost') || field.includes('amount') || field.includes('received') || field.includes('sold') || field.includes('revenue')) {
-                value = `₹${value}`;
+        if (field === 'status') {
+            let statusClass = '';
+            if (value === 'pending') statusClass = 'badge-pending';
+            else if (value === 'received') statusClass = 'badge-accepted';
+            else if (value === 'not_received') statusClass = 'badge-danger';
+            else statusClass = '';
+            
+            cell.innerHTML = value ? `<span class="badge ${statusClass}">${value}</span>` : 'N/A';
+        }else {
+            if (typeof value === 'number' || (!isNaN(parseFloat(value)) && (field.includes('cost') || field.includes('amount') || field.includes('received') || field.includes('sold') || field.includes('revenue') || field.includes('quantity') || field.includes('milk')))) {
+                value = parseFloat(value).toFixed(2);
+                if (field.includes('cost') || field.includes('amount') || field.includes('received') || field.includes('sold') || field.includes('revenue')) {
+                    value = `₹${value}`;
+                }
             }
+            cell.textContent = value;
         }
-        cell.textContent = value;
         row.appendChild(cell);
       });
       tbody.appendChild(row);

@@ -297,16 +297,22 @@ class Deduction(models.Model):
 
 
 class MilkReceived(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('received', 'Received'),
+        ('not_received', 'Not Received'),
+    ]
     receipt_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE, related_name='milk_received')
+    manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True, related_name='milk_distributed')
+    
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField()
     source = models.CharField(max_length=50, default='farm')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
-
     def __str__(self):
-        return f"{self.seller.name} - {self.quantity}L on {self.date}"
-
+        return f"{self.seller.name} - {self.quantity}L on {self.date} ({self.status})"
     class Meta:
         db_table = 'milkreceived'
 

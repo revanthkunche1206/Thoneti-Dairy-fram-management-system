@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <!-- Manager Dashboard -->
     <div class="page active" id="managerDashboard">
         <div class="dashboard">
             <div class="dashboard-header">
@@ -26,13 +25,6 @@
                 </div>
             </div>
             <div class="dashboard-content">
-                <!-- <div class="tabs">
-                    <button class="tab active" onclick="switchTab(event, 'dailyData')">Daily Data</button>
-                    <button class="tab" onclick="switchTab(event, 'occasionalExpenses')">Occasional Expenses</button>
-                    <button class="tab" onclick="switchTab(event, 'datewiseData')">Datewise Data</button>
-                    <button class="tab" onclick="switchTab(event, 'employeeMgmt')">Employee Management</button>
-                    <button class="tab" onclick="switchTab(event, 'locationMgmt')">Location Management</button>
-                </div> -->
                 <div class="tabs">
                 <button class="tab active" onclick="switchTab(event, 'mainDashboard')">Dashboard</button>
                 <button class="tab" onclick="switchTab(event, 'dailyData')">Daily Data</button>
@@ -130,6 +122,15 @@
                     </div>
 
                     <div class="card">
+                        <h3><span class="card-icon">⏳</span>Pending Distributions</h3>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                            Showing distributions awaiting seller confirmation.
+                        </p>
+                        <div id="managerPendingDistributionsList">
+                            <p style="text-align: center; color: #999; padding: 20px;">No pending distributions.</p>
+                        </div>
+                    </div>
+                    <div class="card">
                         <h3><span class="card-icon">📦</span>Leftover Milk Management</h3>
                         <form id="leftoverMilkForm">
                             <input type="hidden" name="recordId" data-field="recordId">
@@ -149,7 +150,6 @@
                     </div>
                 </div>
 
-                <!-- Occasional Expenses Tab -->
                 <div class="tab-content" id="occasionalExpenses">
                     <div class="card">
                         <h3><span class="card-icon">🔧</span>Miscellaneous Expenses</h3>
@@ -190,7 +190,6 @@
                     </div>
                 </div>
 
-                <!-- Employee Management Tab -->
                 <div class="tab-content" id="employeeMgmt">
                     <div class="card">
                         <h3><span class="card-icon">👥</span>Add New Employee</h3>
@@ -224,8 +223,7 @@
                             <input type="date" id="attendanceDate" data-field="date">
                         </div>
                         <div class="attendance-grid" id="attendanceGrid">
-                            <!-- Dynamically populated -->
-                        </div>
+                            </div>
                     </div>
 
                     <div class="card">
@@ -236,8 +234,7 @@
                                     <label>Select Employee</label>
                                     <select name="employeeId" required data-field="employeeId">
                                         <option value="">Choose employee...</option>
-                                        <!-- Dynamically populated -->
-                                    </select>
+                                        </select>
                                 </div>
                                 <div class="form-group">
                                     <label>Reason for Deduction</label>
@@ -268,14 +265,12 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Dynamically populated -->
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- Location Management Tab -->
                 <div class="tab-content" id="locationMgmt">
                     <div class="card">
                         <h3><span class="card-icon">📍</span>Add New Location</h3>
@@ -302,8 +297,7 @@
                                     <label>Select Location</label>
                                     <select name="locationId" required data-field="locationId">
                                         <option value="">Choose location...</option>
-                                        <!-- Dynamically populated -->
-                                    </select>
+                                        </select>
                                 </div>
                                 <div class="form-group">
                                     <label>Seller Name</label>
@@ -328,8 +322,7 @@
                         <h3><span class="card-icon">🗺️</span>All Locations</h3>
                         <p style="color: #666; margin-bottom: 20px;">Total Locations: <strong id="locationCount">0</strong></p>
                         <div class="location-grid" id="locationGrid">
-                            <!-- Dynamically populated -->
-                        </div>
+                            </div>
                         <div class="stats-grid" style="margin-top: 20px;">
                             <div class="stat-card">
                                 <h4>Total Milk Today</h4>
@@ -339,7 +332,6 @@
                     </div>
                 </div>
 
-                <!-- Datewise Data Tab -->
                 <div class="tab-content" id="datewiseData">
                     <div class="card">
                         <h3><span class="card-icon">📅</span>Data for Selected Date</h3>
@@ -358,8 +350,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Dynamically populated -->
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -375,8 +366,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Dynamically populated -->
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -392,8 +382,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Dynamically populated -->
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -410,8 +399,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Dynamically populated -->
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -425,11 +413,11 @@
                                         <th>Seller Name</th>
                                         <th>Quantity (L)</th>
                                         <th>Source</th>
+                                        <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Dynamically populated -->
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -447,8 +435,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Dynamically populated -->
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -464,8 +451,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Dynamically populated -->
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>

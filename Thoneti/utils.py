@@ -226,25 +226,23 @@ def get_monthly_attendance_summary(employee, year, month):
         'unmarked': total_days - (present_count + absent_count)
     }
 
-
 def get_seller_daily_summary(seller, summary_date=None):
     if summary_date is None:
         summary_date = date.today()
 
-    milk_received = MilkReceived.objects.filter(
-        seller=seller,
-        date=summary_date
-    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
-
-    farm_milk = MilkReceived.objects.filter(
+    base_query = MilkReceived.objects.filter(
         seller=seller,
         date=summary_date,
+        status='received'
+    )
+
+    milk_received = base_query.aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+    farm_milk = base_query.filter(
         source='From Farm'
     ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
-    inter_seller_milk = MilkReceived.objects.filter(
-        seller=seller,
-        date=summary_date,
+    inter_seller_milk = base_query.filter(
         source='Inter Seller'
     ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
@@ -259,7 +257,6 @@ def get_seller_daily_summary(seller, summary_date=None):
         'total_received': daily_total.total_received if daily_total else Decimal('0.00'),
         'total_sold': daily_total.total_sold if daily_total else Decimal('0.00')
     }
-
 
 
 def get_location_statistics():

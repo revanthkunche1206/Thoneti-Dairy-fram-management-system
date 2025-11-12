@@ -257,20 +257,86 @@ def record_milk_distribution(request):
 
     location = get_object_or_404(Location, location_id=location_id)
     active_sellers = Seller.objects.filter(location=location, is_active=True)
-
-    if not active_sellers.exists():
+    
+    seller_count = active_sellers.count()
+    if seller_count == 0:
         return Response({'message': 'No active sellers in this location.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    quantity_per_seller = quantity / active_sellers.count()
+    quantity_per_seller = quantity / seller_count
+    
+    notification_message = f"You have a pending milk delivery of {quantity_per_seller:.2f}L from your manager for {milk_date}."
 
     for seller in active_sellers:
-        MilkReceived.objects.create(seller=seller, quantity=quantity_per_seller, date=milk_date, source='From Farm')
+        MilkReceived.objects.create(
+            seller=seller,
+            manager=manager,
+            quantity=quantity_per_seller,
+            date=milk_date,
+            source='From Farm',
+            status='pending' 
+        )
+        create_notification(seller.user, notification_message)
 
     daily_ops = get_or_create_daily_operations(manager, milk_date)
     update_milk_distribution_totals(daily_ops)
+    return Response({'message': f'Milk distribution recorded for {seller_count} sellers.'}, status=status.HTTP_201_CREATED)
 
-    return Response({'message': f'Milk distribution recorded for {active_sellers.count()} sellers.'}, status=status.HTTP_201_CREATED)
+# --- NEW VIEW 1 (for Seller) ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_pending_distributions(request):
+    """Lists pending milk distributions for the logged-in seller."""
+    seller = get_object_or_404(Seller, user=request.user)
+    
+    records = MilkReceived.objects.filter(
+        seller=seller,
+        status__in=['pending', 'not_received']
+    ).select_related('manager').order_by('-date')
+    
+    return Response(MilkReceivedSerializer(records, many=True).data)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@transaction.atomic
+def update_milk_received_status(request, receipt_id):
+    """Seller updates the status of a milk distribution."""
+    seller = get_object_or_404(Seller, user=request.user)
+    record = get_object_or_404(MilkReceived, receipt_id=receipt_id, seller=seller)
+    
+    new_status = request.data.get('status')
+    if new_status not in ['received', 'not_received']:
+        return Response({'message': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    record.status = new_status
+    record.save()
+    
+    if new_status == 'received':
+        message = f"Seller {seller.name} has confirmed receipt of {record.quantity}L for {record.date}."
+    else: # 'not_received'
+        message = f"Seller {seller.name} has marked the distribution of {record.quantity}L for {record.date} as 'Not Received'."
+
+    if record.manager:
+        create_notification(record.manager.user, message)
+
+    if new_status == 'received':
+        from .utils import update_milk_distribution_totals
+        daily_ops = get_or_create_daily_operations(record.manager, record.date)
+        update_milk_distribution_totals(daily_ops)
+
+    return Response({'message': f'Status updated to {new_status}.'}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_manager_pending_distributions(request):
+    """Lists pending milk distributions sent by the logged-in manager."""
+    manager = get_object_or_404(Manager, user=request.user)
+    
+    records = MilkReceived.objects.filter(
+        manager=manager,
+        status='pending'
+    ).select_related('seller', 'seller__location').order_by('-date')
+    
+    return Response(MilkReceivedSerializer(records, many=True).data)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -294,16 +360,13 @@ def get_daily_data(request):
     manager = get_object_or_404(Manager, user=request.user)
     selected_date = _parse_date(request.query_params.get('date'))
 
-    # Get or create daily operations for the date
     daily_ops = get_or_create_daily_operations(manager, selected_date)
 
-    # Fetch all related data
     feed_records = FeedRecord.objects.filter(record=daily_ops).select_related('record')
     expense_records = ExpenseRecord.objects.filter(record=daily_ops).select_related('record')
     medicine_records = MedicineRecord.objects.filter(record=daily_ops).select_related('record')
     milk_distribution = MilkDistribution.objects.filter(record=daily_ops).select_related('record')
 
-    # Serialize data
     data = {
         'feed_records': FeedRecordSerializer(feed_records, many=True).data,
         'expense_records': ExpenseRecordSerializer(expense_records, many=True).data,

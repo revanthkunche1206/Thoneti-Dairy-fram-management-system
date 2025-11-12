@@ -72,7 +72,6 @@ class ManagerCreateSerializer(serializers.Serializer):
     name = serializers.CharField()
 
     def create(self, validated_data):
-        # --- FIX: ADDED try...except BLOCK ---
         try:
             user = User.objects.create_user(
                 username=validated_data['username'],
@@ -83,7 +82,6 @@ class ManagerCreateSerializer(serializers.Serializer):
                 name=validated_data['name'],
                 user=user
             )
-        # This will catch the duplicate username error from the model
         except IntegrityError:
             raise serializers.ValidationError({
                 'username': ['A user with this username already exists.']
@@ -110,10 +108,7 @@ class EmployeeCreateSerializer(serializers.Serializer):
     name = serializers.CharField()
     base_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
     
-    # --- CHANGED ---
-    # Changed from UUIDField to CharField to accept "manager001"
     manager_id = serializers.CharField()
-    # --- END CHANGE ---
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -278,10 +273,13 @@ class SalarySerializer(serializers.ModelSerializer):
 
 class MilkReceivedSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source='seller.name', read_only=True)
-
+    manager_name = serializers.CharField(source='manager.name', read_only=True, allow_null=True)
+    seller_location_name = serializers.CharField(source='seller.location.location_name', read_only=True, allow_null=True)
     class Meta:
         model = MilkReceived
-        fields = ['receipt_id', 'seller', 'seller_name', 'quantity', 'date', 'source', 'created_at']
+        fields = ['receipt_id', 'seller', 'seller_name', 'manager_name', 'quantity', 'seller_location_name',
+                  'date', 'source', 'status', 'created_at']
+        
         read_only_fields = ['receipt_id', 'created_at']
 
 
