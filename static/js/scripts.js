@@ -329,9 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
         manager_id: userData.manager_id,
       };
       
-      // Correcting: Get manager_id from user data
-      const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
-      data.manager_id = userData.manager_id; // Assumes manager_id was stored on login
+      data.manager_id = userData.manager_id;
 
       if (!data.manager_id) {
           showModal('errorModal', 'Could not find Manager ID. Please re-login.');
@@ -339,7 +337,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       await apiFetch(`${BASE_URL}/manager/employees/add/`, { method: "POST", body: JSON.stringify(data) });
-      // REPLACED alert() and reload()
       showModal('successModal', 'Employee added!');
       e.target.reset();
       loadEmployees();
@@ -1097,4 +1094,3 @@ function initializeManagerChart(chartData) {
     }
   });
 }
-
