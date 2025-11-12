@@ -740,18 +740,13 @@ def manager_dashboard_stats(request):
         today = date.today()
         seven_days_ago = today - timedelta(days=6)
 
-        # 1. Get daily milk and expense data for the last 7 days
-        # We find all dates for this manager
+
         operations = DailyOperations.objects.filter(
             manager=manager,
             date__gte=seven_days_ago,
             date__lte=today
         ).order_by('date')
 
-        # We also need to get all milk received on those dates,
-        # as the signal-based update might be flawed.
-        # A more robust way is to query MilkReceived directly.
-        # Filter by sellers under locations that have operations by this manager
         locations = Location.objects.all()
         sellers = Seller.objects.filter(location__in=locations, is_active=True)
         all_milk_received = MilkReceived.objects.filter(
@@ -768,14 +763,12 @@ def manager_dashboard_stats(request):
             total_expense=Sum('amount')
         )
 
-        # Get leftover sales
         milk_dist = MilkDistribution.objects.filter(
             record__in=operations
         ).values('date').annotate(
             leftover_sales=Sum('leftover_sales')
         )
 
-        # 3. Format data for Chart.js
         labels = [(seven_days_ago + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
 
         # Use the direct MilkReceived query for milk data

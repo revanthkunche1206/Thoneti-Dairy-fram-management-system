@@ -56,17 +56,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Manager(models.Model):
-    # --- CHANGED ---
-    # Changed from UUIDField to CharField for serial IDs
     manager_id = models.CharField(max_length=10, primary_key=True, unique=True, editable=False, blank=True)
-    # --- END CHANGE ---
-    
     name = models.CharField(max_length=255)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='manager_profile')
     created_at = models.DateTimeField(auto_now_add=True)
-
-    # --- ADDED ---
-    # This logic creates serial IDs like "manager001", "manager002"
     def save(self, *args, **kwargs):
         if not self.manager_id:
             last_manager = Manager.objects.order_by('-manager_id').first()
@@ -79,8 +72,6 @@ class Manager(models.Model):
             else:
                 self.manager_id = 'manager001'
         super().save(*args, **kwargs)
-    # --- END ADD ---
-
     def __str__(self):
         return self.name
 
@@ -322,14 +313,9 @@ class MilkReceived(models.Model):
 
 @receiver(post_save, sender=MilkReceived)
 def update_milk_distribution_totals(sender, instance, created, **kwargs):
-    """
-    Updates SystemMilkDistribution totals whenever a MilkReceived record is created.
-    This ensures totals are updated from all sources: manager distribution, seller recording, inter-seller transactions.
-    """
     if created:
         from .models import SystemMilkDistribution
         from .utils import calculate_total_milk_distributed
-        # Update system-wide total milk received on that date
         system_dist, created = SystemMilkDistribution.objects.get_or_create(
             date=instance.date,
             defaults={'total_milk': Decimal('0.00')}
@@ -428,8 +414,5 @@ class Notification(models.Model):
 
 @receiver(post_save, sender=User)
 def create_admin_profile(sender, instance, created, **kwargs):
-    """
-    Automatically create an Admin profile when a new superuser is created.
-    """
     if created and instance.is_superuser and instance.role == 'admin':
         Admin.objects.get_or_create(user=instance, defaults={'name': instance.username})

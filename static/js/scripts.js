@@ -1012,16 +1012,13 @@ document.addEventListener("DOMContentLoaded", () => {
           resetForm(leftoverMilkForm);
       }
       
-      // Note: Misc expense form is not populated from this function in the original,
-      // but you could add it here if needed, filtering for 'Miscellaneous' category.
-
+ 
     } catch (error) {
       console.error("Failed to load daily data:", error);
       showModal("errorModal", "Failed to load form data for selected date: " + error.message);
     }
   }
   
-  // Universal modal close clicker
   document.querySelectorAll('.modal').forEach(modal => {
       modal.addEventListener('click', (e) => {
           if (e.target === modal) {
@@ -1033,12 +1030,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-let managerChartInstance = null; // Global variable to hold the chart instance
+let managerChartInstance = null;
 
-/**
- * Fetches data from the dashboard-stats endpoint and populates
- * the stat cards and the chart.
- */
 async function loadManagerDashboardStats() {
   try {
     const data = await apiFetch(`${BASE_URL}/manager/dashboard-stats/`);
@@ -1050,125 +1043,9 @@ async function loadManagerDashboardStats() {
     document.getElementById("dashTotalLocations").textContent = data.total_locations;
 
     // 2. Initialize or update the chart
-    initializeManagerChart(data.chart_data);
 
   } catch (error) {
     console.error("Failed to load manager dashboard stats:", error);
     showModal('errorModal', 'Could not load dashboard statistics.');
   }
-}
-
-/**
- * Initializes or updates the Chart.js instance for the manager dashboard.
- * @param {object} chartData - The data object from the API (labels, datasets)
- */
-// function initializeManagerChart(chartData) {
-//   const ctx = document.getElementById('managerStatsChart');
-//   if (!ctx) return; // Exit if chart canvas isn't on the page
-
-//   // If the chart instance already exists, destroy it before creating a new one
-//   if (managerChartInstance) {
-//     managerChartInstance.destroy();
-//   }
-
-//   // Create the new chart
-//   managerChartInstance = new Chart(ctx, {
-//     type: 'line', // Type of chart
-//     data: chartData, // Data from our API
-//     options: {
-//       responsive: true,
-//       maintainAspectRatio: false,
-//       scales: {
-//         y: {
-//           beginAtZero: true,
-//         }
-//       },
-//       plugins: {
-//         tooltip: {
-//           callbacks: {
-//             label: function(context) {
-//               let label = context.dataset.label || '';
-//               if (label) {
-//                 label += ': ';
-//               }
-//               let value = context.parsed.y;
-//               if (label.includes('(₹)')) {
-//                 label += `₹${value.toFixed(2)}`;
-//               } else if (label.includes('(L)')) {
-//                 label += `${value.toFixed(2)} L`;
-//               } else {
-//                 label += value;
-//               }
-//               return label;
-//             }
-//           }
-//         }
-//       }
-//     }
-//   });
-// }
-
-/**
- * Initializes or updates the Chart.js instance for the manager dashboard.
- * @param {object} chartData - The data object from the API (labels, datasets)
- */
-function initializeManagerChart(chartData) {
-  const ctx = document.getElementById('managerStatsChart');
-  if (!ctx) return; // Exit if chart canvas isn't on the page
-
-  // If the chart instance already exists, destroy it before creating a new one
-  if (managerChartInstance) {
-    managerChartInstance.destroy();
-  }
-
-  // Create the new chart
-  managerChartInstance = new Chart(ctx, {
-    type: 'line', // Type of chart
-    data: chartData, // Data from our API
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-        }
-      },
-      plugins: { // --- START OF ADDED/MODIFIED BLOCK ---
-        zoom: {
-          zoom: {
-            wheel: {
-              enabled: false, // Disables zooming with the mouse wheel
-            },
-            pinch: {
-              enabled: false, // Disables zooming on mobile
-            },
-            mode: 'xy',
-          },
-          pan: {
-            enabled: false, // Disables panning (dragging) the chart
-            mode: 'xy',
-          }
-        }, // --- END OF ADDED BLOCK ---
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              let label = context.dataset.label || '';
-              if (label) {
-                label += ': ';
-              }
-              let value = context.parsed.y;
-              if (label.includes('(₹)')) {
-                label += `₹${value.toFixed(2)}`;
-              } else if (label.includes('(L)')) {
-                label += `${value.toFixed(2)} L`;
-              } else {
-                label += value;
-              }
-              return label;
-            }
-          }
-        }
-      }
-    }
-  });
 }
