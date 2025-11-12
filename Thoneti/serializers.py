@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
-
 from .models import (
     User, Admin, Manager, Employee, Seller, Location,
     DailyOperations, FeedRecord, ExpenseRecord, MedicineRecord,
@@ -73,15 +72,26 @@ class ManagerCreateSerializer(serializers.Serializer):
     name = serializers.CharField()
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            password=validated_data['password'],
-            role='manager'
-        )
-        return Manager.objects.create(
-            name=validated_data['name'],
-            user=user
-        )
+        # --- FIX: ADDED try...except BLOCK ---
+        try:
+            user = User.objects.create_user(
+                username=validated_data['username'],
+                password=validated_data['password'],
+                role='manager'
+            )
+            return Manager.objects.create(
+                name=validated_data['name'],
+                user=user
+            )
+        # This will catch the duplicate username error from the model
+        except IntegrityError:
+            raise serializers.ValidationError({
+                'username': ['A user with this username already exists.']
+            })
+        except Exception as e:
+            # Catch any other unexpected errors
+            raise serializers.ValidationError({'detail': str(e)})
+        # --- END OF FIX ---
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -99,7 +109,11 @@ class EmployeeCreateSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
     name = serializers.CharField()
     base_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
+    
+    # --- CHANGED ---
+    # Changed from UUIDField to CharField to accept "manager001"
     manager_id = serializers.CharField()
+    # --- END CHANGE ---
 
     def create(self, validated_data):
         user = User.objects.create_user(

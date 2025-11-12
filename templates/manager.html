@@ -479,6 +479,22 @@
         </div>
     </div>
     <script src="{% static 'js/scripts.js' %}"></script>
-</div>
+    <div id="successModal" class="modal">
+        <div class="modal-content success">
+            <div class="modal-icon">✓</div>
+            <h3>Success!</h3>
+            <p id="successMessage">Your action was completed successfully.</p>
+            <button onclick="closeModal()" class="btn-primary">OK</button>
+        </div>
+    </div>
+
+    <div id="errorModal" class="modal">
+        <div class="modal-content error">
+            <div class="modal-icon">✗</div>
+            <h3>Operation Failed</h3>
+            <p id="errorMessage">An error occurred. Please try again.</p>
+            <button onclick="closeModal()" class="btn-primary">OK</button>
+        </div>
+    </div>
 </body>
 </html>

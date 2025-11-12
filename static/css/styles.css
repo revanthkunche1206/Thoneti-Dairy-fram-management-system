@@ -517,10 +517,10 @@
 }
 
 .modal-content {
-    background-color: var(--white);
+    background-color: white;
     margin: auto;
     padding: 30px;
-    border-radius: var(--border-radius);
+    border-radius: 8px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     width: 90%;
     max-width: 450px;
@@ -538,7 +538,7 @@
     height: 70px;
     border-radius: 50%;
     font-size: 40px;
-    color: var(--white);
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -546,10 +546,10 @@
 }
 
 .modal-content.success .modal-icon {
-    background: var(--success);
+    background: #28a745;
 }
 .modal-content.error .modal-icon {
-    background: var(--error);
+    background: #dc3545;
 }
 
 .modal-content h3 {
@@ -559,7 +559,7 @@
 
 .modal-content p {
     font-size: 16px;
-    color: var(--text-light);
+    color: #666;
     margin-bottom: 24px;
 }
 

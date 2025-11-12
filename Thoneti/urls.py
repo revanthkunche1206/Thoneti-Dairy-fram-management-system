@@ -34,7 +34,6 @@ urlpatterns = [
     path('api/seller/milk-request/<uuid:request_id>/accept/', views.accept_milk_request, name='accept-milk-request'),
     path('api/seller/milk-request/<uuid:request_id>/received/', views.mark_as_received, name='mark-as-received'),
     path('api/seller/milk-requests/incoming/', views.list_incoming_requests, name='list-incoming-requests'),
-    path('api/manager/dashboard-stats/', views.manager_dashboard_stats, name='manager-dashboard-stats'),
     path('api/seller/milk-requests/mine/', views.list_my_requests, name='list-my-requests'),
     path('api/notifications/', views.list_notifications, name='list-notifications'),
     path('api/notifications/<uuid:notification_id>/read/', views.mark_notification_read, name='mark-notification-read'),

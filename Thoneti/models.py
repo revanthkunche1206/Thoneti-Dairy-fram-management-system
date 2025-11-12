@@ -1,8 +1,8 @@
-from django.db import models, IntegrityError, transaction
+from django.db import models, IntegrityError
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
-# from django.db.models.signals import post_save
-# from django.dispatch import receiver
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 import uuid
 from decimal import Decimal
 
@@ -11,14 +11,8 @@ class UserManager(BaseUserManager):
         if not username:
             raise ValueError('Users must have a username')
         user = self.model(username=username, role=role)
-        user, created = self.model.objects.get_or_create(username=username, defaults={'role': role})
-        if not created:
-            raise ValueError(f'A user with username "{username}" already exists.')
+
         user.set_password(password)
-        if role == 'admin':
-            user.is_staff = True
-            user.is_admin = True
-            user.is_superuser = True
         user.save(using=self._db)
         return user
 
@@ -29,7 +23,6 @@ class UserManager(BaseUserManager):
         user.is_staff = True
         user.save(using=self._db)
         return user
-
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -63,11 +56,17 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Manager(models.Model):
+    # --- CHANGED ---
+    # Changed from UUIDField to CharField for serial IDs
     manager_id = models.CharField(max_length=10, primary_key=True, unique=True, editable=False, blank=True)
+    # --- END CHANGE ---
+    
     name = models.CharField(max_length=255)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='manager_profile')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # --- ADDED ---
+    # This logic creates serial IDs like "manager001", "manager002"
     def save(self, *args, **kwargs):
         if not self.manager_id:
             last_manager = Manager.objects.order_by('-manager_id').first()
@@ -80,6 +79,7 @@ class Manager(models.Model):
             else:
                 self.manager_id = 'manager001'
         super().save(*args, **kwargs)
+    # --- END ADD ---
 
     def __str__(self):
         return self.name
@@ -117,7 +117,7 @@ class Seller(models.Model):
 
 
 class Employee(models.Model):
-    id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True, serialize=False)
     employee_id = models.CharField(max_length=6, unique=True, blank=True, editable=False)
     name = models.CharField(max_length=255)
     base_salary = models.DecimalField(max_digits=10, decimal_places=2)
@@ -126,39 +126,18 @@ class Employee(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # def save(self, *args, **kwargs):
-    #     if not self.employee_id:
-    #         last_employee = Employee.objects.order_by('-employee_id').first()
-    #         if last_employee and last_employee.employee_id.startswith('EMP'):
-    #             try:
-    #                 num = int(last_employee.employee_id[3:]) + 1
-    #                 self.employee_id = f'EMP{num:03d}'
-    #             except ValueError:
-    #                 self.employee_id = 'EMP001'
-    #         else:
-    #             self.employee_id = 'EMP001'
-    #     super().save(*args, **kwargs)
-
     def save(self, *args, **kwargs):
-     if not self.employee_id:
-        # Use a transaction to prevent race conditions
-        with transaction.atomic():
-            # Lock the Employee table for reading to find the last ID
-            last_employee = Employee.objects.select_for_update().order_by('-employee_id').first()
-
+        if not self.employee_id:
+            last_employee = Employee.objects.order_by('-employee_id').first()
             if last_employee and last_employee.employee_id.startswith('EMP'):
                 try:
                     num = int(last_employee.employee_id[3:]) + 1
                     self.employee_id = f'EMP{num:03d}'
                 except ValueError:
-                    # Fallback in case of unexpected ID format
                     self.employee_id = 'EMP001'
             else:
-                # No employees exist yet, start from 001
                 self.employee_id = 'EMP001'
-
-    # Save the instance *after* the transaction block is complete
-     super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -327,36 +306,33 @@ class MilkReceived(models.Model):
         db_table = 'milkreceived'
 
 
-# @receiver(post_save, sender=MilkReceived)
-# def update_milk_distribution_totals(sender, instance, created, **kwargs):
-#     """
-#     Updates MilkDistribution totals whenever a MilkReceived record is created.
-#     This ensures totals are updated from all sources: manager distribution, seller recording, inter-seller transactions.
-#     """
-#     if created:
-#         from .utils import get_or_create_daily_operations, update_milk_distribution_totals
-#         # Find the manager for this seller's location
-#         # Assuming each location has one manager, but since manager is per user, we need to get the manager who manages this location
-#         # For now, we'll assume the manager is the one who has daily operations on this date
-#         # But to make it general, we can get all managers and update their daily operations if they have sellers in this location
-#         # Actually, since MilkDistribution is per manager per date, we need to update for the manager who manages this seller's location
+@receiver(post_save, sender=MilkReceived)
+def update_milk_distribution_totals(sender, instance, created, **kwargs):
+    """
+    Updates MilkDistribution totals whenever a MilkReceived record is created.
+    This ensures totals are updated from all sources: manager distribution, seller recording, inter-seller transactions.
+    """
+    if created:
+        from .utils import get_or_create_daily_operations, update_milk_distribution_totals
+        # Find the manager for this seller's location
+        # Assuming each location has one manager, but since manager is per user, we need to get the manager who manages this location
+        # For now, we'll assume the manager is the one who has daily operations on this date
+        # But to make it general, we can get all managers and update their daily operations if they have sellers in this location
+        # Actually, since MilkDistribution is per manager per date, we need to update for the manager who manages this seller's location
 
-#         # Get the manager who manages employees in this location? Wait, manager manages employees, not locations directly.
-#         # Looking at the model, Manager has employees, but locations are separate.
-#         # Perhaps we need to assume there's one manager per system, or find the manager who has daily operations on this date.
+        # Get the manager who manages employees in this location? Wait, manager manages employees, not locations directly.
+        # Perhaps we need to assume there's one manager per system, or find the manager who has daily operations on this date.
 
-#         # For simplicity, since the system seems to have one manager, we'll get the manager from the seller's location or find the manager who has daily operations.
+        # Actually, looking at the code, in record_milk_distribution, it gets the manager from request.user
+        # But for other sources, we need to find the appropriate manager.
 
-#         # Actually, looking at the code, in record_milk_distribution, it gets the manager from request.user
-#         # But for other sources, we need to find the appropriate manager.
+        # Perhaps we can get the manager who has the most employees or something, but that's hacky.
+        # Better: since locations are managed by the system, and manager is per system, we can get the first manager.
 
-#         # Perhaps we can get the manager who has the most employees or something, but that's hacky.
-#         # Better: since locations are managed by the system, and manager is per system, we can get the first manager.
-
-#         manager = Manager.objects.first()
-#         if manager:
-#             daily_ops = get_or_create_daily_operations(manager, instance.date)
-#             update_milk_distribution_totals(daily_ops)
+        manager = Manager.objects.first()
+        if manager:
+            daily_ops = get_or_create_daily_operations(manager, instance.date)
+            update_milk_distribution_totals(daily_ops)
 
 
 class DailyTotal(models.Model):
@@ -444,3 +420,12 @@ class Notification(models.Model):
     class Meta:
         db_table = 'notification'
         ordering = ['-timestamp']
+
+
+@receiver(post_save, sender=User)
+def create_admin_profile(sender, instance, created, **kwargs):
+    """
+    Automatically create an Admin profile when a new superuser is created.
+    """
+    if created and instance.is_superuser and instance.role == 'admin':
+        Admin.objects.get_or_create(user=instance, defaults={'name': instance.username})

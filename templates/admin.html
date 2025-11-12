@@ -173,7 +173,7 @@
         <div id="successModal" class="modal">
             <div class="modal-content success">
                 <div class="modal-icon">✓</div>
-                <h3>Manager Registered Successfully!</h3>
+                <h3>Success!</h3>
                 <p id="successMessage"></p>
                 <button onclick="closeModal()" class="btn-primary">OK</button>
             </div>
@@ -182,14 +182,14 @@
         <div id="errorModal" class="modal">
             <div class="modal-content error">
                 <div class="modal-icon">✗</div>
-                <h3>Registration Failed</h3>
+                <h3>Action Failed</h3>
                 <p id="errorMessage"></p>
                 <button onclick="closeModal()" class="btn-primary">OK</button>
             </div>
         </div>
-    </div>
 
-    <div id="confirmDeleteModal" class="modal">
+        <!-- --- THIS IS THE NEW MODAL --- -->
+        <div id="confirmDeleteModal" class="modal">
             <div class="modal-content warning">
                 <div class="modal-icon">!</div>
                 <h3>Are you sure?</h3>
@@ -204,6 +204,7 @@
                 </div>
             </div>
         </div>
+    </div>
 
     <script src="{% static 'js/admin.js' %}"></script>
 </body>

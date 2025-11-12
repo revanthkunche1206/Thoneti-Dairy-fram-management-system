@@ -16,17 +16,35 @@ async function apiFetch(url, options = {}) {
     const headers = options.headers || {};
     headers["Content-Type"] = "application/json";
     headers["X-CSRFToken"] = getCSRFToken();
-
     options.headers = headers;
-    options.credentials = "include"; // ✅ Allow Django session cookies
-
+    
     const res = await fetch(url, options);
-    if (!res.ok) {
-        const err = await res.text();
-        console.error("API error:", err);
-        throw new Error(err);
+
+    // Handle 204 No Content (for DELETE)
+    if (res.status === 204) {
+        return null; // Return null for success with no content
     }
-    return res.json();
+    
+    // Check for other errors
+    if (!res.ok) {
+        let err;
+        try {
+            err = await res.json(); // Try to parse error JSON
+        } catch (e) {
+            err = { detail: await res.text() }; // Fallback to text
+        }
+
+        console.error("API error:", err);
+        // Use a specific error message if available
+        const message = err.username ? err.username[0] : (err.detail || 'An unknown server error occurred.');
+        throw new Error(message);
+    }
+    
+    // Only parse JSON if there's content and response wasn't 204
+    if (res.status !== 204) {
+        return res.json();
+    }
+    return null;
 }
 
 
@@ -39,11 +57,16 @@ function logout() {
 
 function showModal(modalId, message) {
     const modal = document.getElementById(modalId);
+    if (!modal) return;
+
     if (modalId === 'successModal') {
         document.getElementById('successMessage').textContent = message;
     } else if (modalId === 'errorModal') {
         document.getElementById('errorMessage').textContent = message;
+    } else if (modalId === 'confirmDeleteModal' && message) {
+        document.getElementById('confirmDeleteMessage').textContent = message;
     }
+    
     modal.classList.add('show');
 }
 
@@ -94,26 +117,32 @@ async function registerManager(event) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
             },
-            credentials: 'include',
             body: JSON.stringify(data)
         });
 
-
-        const result = await response.json();
-
+        // --- FIX: LOGIC RE-ORDERED ---
+        // First, check if the response is OK (e.g., 200, 201)
         if (response.ok) {
+            const result = await response.json(); // Now it's safe to parse success JSON
             showModal('successModal', `Manager "${result.name}" registered successfully!`);
             event.target.reset();
-            loadManagers();
+            loadManagers(); // This will refresh the table and stats
         } else {
-            const errorMsg = result.username ? result.username[0] : 'Registration failed. Please try again.';
+            // If response is not OK (e.g., 400), parse the error JSON
+            const result = await response.json();
+            // Display the specific error from the server
+            const errorMsg = result.username ? result.username[0] : (result.detail || 'Registration failed. Please try again.');
             showModal('errorModal', errorMsg);
         }
+        // --- END OF FIX ---
+
     } catch (error) {
         console.error('Registration error:', error);
-        showModal('errorModal', 'Network error. Please check your connection and try again.');
+        // This 'catch' will now only handle actual network failures
+        showModal('errorModal', error.message || 'Network error. Please check your connection.');
     }
 }
+
 
 function populateManagersTable(managers) {
     const tbody = document.getElementById('managersTableBody');
@@ -131,6 +160,8 @@ function populateManagersTable(managers) {
                 </td>
             </tr>
         `;
+        // Still update stats even if empty
+        updateStats(managers);
         return;
     }
 
@@ -146,12 +177,15 @@ function populateManagersTable(managers) {
             <td><span class="status status-active">Active</span></td>
             <td>
                 <button class="action-btn btn-edit" title="Edit Manager">✏️</button>
+                
+                <!-- --- MODIFIED THIS BUTTON --- -->
                 <button class="action-btn btn-delete" 
                         title="Delete Manager"
                         data-id="${manager.manager_id}"
                         data-name="${manager.name}">
                     🗑️
                 </button>
+                <!-- --- END OF MODIFICATION --- -->
             </td>
         `;
         tbody.appendChild(row);
@@ -162,7 +196,12 @@ function populateManagersTable(managers) {
 
 function updateStats(managers) {
     const totalManagers = managers.length;
+    
+    // --- FIX AS DISCUSSED PREVIOUSLY ---
+    // The API returns only active managers, so the count is just the length.
     const activeManagers = managers.length;
+    // --- END OF FIX ---
+
     const today = new Date().toISOString().split('T')[0];
     const todayManagers = managers.filter(m => m.created_at.startsWith(today)).length;
 
@@ -177,7 +216,7 @@ async function loadManagers() {
         populateManagersTable(managers);
     } catch (error) {
         console.error('Failed to load managers:', error);
-        showModal('errorModal', 'Failed to load managers. Please refresh the page.');
+        showModal('errorModal', `Failed to load managers: ${error.message}. Please refresh the page.`);
     }
 }
 
@@ -186,6 +225,50 @@ function setAdminName() {
     const adminName = userData.name || 'Administrator';
     document.getElementById('adminName').textContent = adminName;
 }
+
+// --- ADD THESE NEW FUNCTIONS ---
+function showDeleteConfirmation(managerId, managerName) {
+    // Set the message
+    const message = `Do you really want to delete manager "${managerName}" (ID: ${managerId})? This action cannot be undone.`;
+    showModal('confirmDeleteModal', message);
+
+    // Store the ID on the confirm button
+    const confirmButton = document.getElementById('confirmDeleteButton');
+    confirmButton.dataset.id = managerId;
+}
+
+async function handleDeleteManager() {
+    const confirmButton = document.getElementById('confirmDeleteButton');
+    const managerId = confirmButton.dataset.id;
+
+    if (!managerId) return;
+
+    try {
+        // apiFetch will return null for a 204 success
+        await apiFetch(`${BASE_URL}/admin/managers/${managerId}/delete/`, {
+            method: 'DELETE',
+        });
+
+        // Close confirmation modal
+        closeModal();
+
+        // Show success
+        showModal('successModal', `Manager (ID: ${managerId}) has been successfully deleted.`);
+
+        // Reload the table
+        loadManagers();
+
+    } catch (error) {
+        console.error('Delete error:', error);
+        closeModal();
+        showModal('errorModal', `Failed to delete manager: ${error.message}`);
+    } finally {
+        // Clear the ID from the button
+        delete confirmButton.dataset.id;
+    }
+}
+// --- END OF ADDED FUNCTIONS ---
+
 
 document.addEventListener('DOMContentLoaded', () => {
     setAdminName();
@@ -196,11 +279,15 @@ document.addEventListener('DOMContentLoaded', () => {
         registerForm.addEventListener('submit', registerManager);
     }
 
+    // --- ADD EVENT LISTENERS ---
+    
+    // 1. Listen for clicks on the delete button in the table
     const tableBody = document.getElementById('managersTableBody');
     if (tableBody) {
         tableBody.addEventListener('click', (e) => {
             const deleteButton = e.target.closest('.btn-delete');
             if (deleteButton) {
+                e.preventDefault(); // Good practice
                 const managerId = deleteButton.dataset.id;
                 const managerName = deleteButton.dataset.name;
                 showDeleteConfirmation(managerId, managerName);
@@ -208,11 +295,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 2. Listen for clicks on the final confirmation button
     const confirmButton = document.getElementById('confirmDeleteButton');
     if (confirmButton) {
         confirmButton.addEventListener('click', handleDeleteManager);
     }
+    // --- END OF ADDED LISTENERS ---
 
+    // Close modals when clicking outside
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
@@ -221,41 +311,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-
-
-
-function showDeleteConfirmation(managerId, managerName) {
-    const messageElement = document.getElementById('confirmDeleteMessage');
-    messageElement.textContent = `Do you really want to delete manager "${managerName}" (ID: ${managerId})? This action cannot be undone.`;
-
-    const confirmButton = document.getElementById('confirmDeleteButton');
-    confirmButton.dataset.id = managerId;
-
-    showModal('confirmDeleteModal');
-}
-
-async function handleDeleteManager() {
-    const confirmButton = document.getElementById('confirmDeleteButton');
-    const managerId = confirmButton.dataset.id;
-
-    if (!managerId) return;
-
-    try {
-        await apiFetch(`${BASE_URL}/admin/managers/${managerId}/delete/`, {
-            method: 'DELETE',
-        });
-
-        closeModal();
-
-        showModal('successModal', `Manager (ID: ${managerId}) has been successfully deleted.`);
-
-        loadManagers();
-
-    } catch (error) {
-        console.error('Delete error:', error);
-        closeModal();
-        showModal('errorModal', `Failed to delete manager: ${error.message}`);
-    } finally {
-        delete confirmButton.dataset.id;
-    }
-}

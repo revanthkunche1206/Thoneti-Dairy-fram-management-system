@@ -7,15 +7,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
 from django.utils import timezone
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import permission_classes
-
 
 from .models import (
     User, Manager, Employee, Seller, Location, DailyOperations,
@@ -92,14 +89,20 @@ def login_view(request):
     role_data = {}
 
     if user.role == 'admin':
-        admin = get_object_or_404(Admin, user=user)
+        admin, created = Admin.objects.get_or_create(
+            user=user, 
+            defaults={'name': user.username}
+        )
         role_data = {
             'admin_id': str(admin.admin_id),
             'name': admin.name
         }
 
     elif user.role == 'manager':
-        manager = get_object_or_404(Manager, user=user)
+        manager, created = Manager.objects.get_or_create(
+            user=user,
+            defaults={'name': user.username}
+        )
         role_data = {
             'manager_id': str(manager.manager_id),
             'name': manager.name
@@ -467,16 +470,6 @@ def get_employee_attendance(request):
     ]
     return Response(data, status=status.HTTP_200_OK)
 
-# @api_view(['POST'])
-# def record_milk_received(request):
-#     """Seller records received milk."""
-#     seller = get_object_or_404(Seller, user=request.user)
-#     milk_date = _parse_date(request.data.get('date'))
-#     quantity = Decimal(request.data.get('quantity', 0))
-#     source = request.data.get('source', 'From Farm')
-#     record = MilkReceived.objects.create(seller=seller, quantity=quantity, date=milk_date, source=source)
-#     return Response(MilkReceivedSerializer(record).data, status=status.HTTP_201_CREATED)
-
 @api_view(['POST'])
 def record_milk_received(request):
     """Seller records received milk."""
@@ -485,16 +478,6 @@ def record_milk_received(request):
     quantity = Decimal(request.data.get('quantity', 0))
     source = request.data.get('source', 'From Farm')
     record = MilkReceived.objects.create(seller=seller, quantity=quantity, date=milk_date, source=source)
-
-    # --- Start of Added Logic ---
-    # Replicate signal logic: Find the primary manager to update their daily operations
-    # This assumes a single-manager system, which matches the signal's original (flawed) logic
-    manager = Manager.objects.first()
-    if manager:
-        daily_ops = get_or_create_daily_operations(manager, milk_date)
-        update_milk_distribution_totals(daily_ops)
-    # --- End of Added Logic ---
-
     return Response(MilkReceivedSerializer(record).data, status=status.HTTP_201_CREATED)
 
 
@@ -583,33 +566,20 @@ def mark_as_received(request, request_id):
     # Update request status to received
     milk_request.status = 'received'
     milk_request.save()
-    today = date.today()
-    MilkReceived.objects.create(seller=milk_request.from_seller,
-    quantity=milk_request.quantity,
-    date=today,
-    source='Inter Seller'
+
+    # Record the milk received for the borrower from inter-seller
+    MilkReceived.objects.create(
+        seller=milk_request.from_seller,
+        quantity=milk_request.quantity,
+        date=date.today(),
+        source='Inter Seller'
     )
-    manager = Manager.objects.first()
-    if manager:
-      daily_ops = get_or_create_daily_operations(manager, today)
-      update_milk_distribution_totals(daily_ops)
-# --- End of Added Logic ---
 
-# Update borrow/lend record as settled
+    # Update the total milk received for the seller (this will be reflected in the summary)
+    # The summary already aggregates all MilkReceived, so no additional update needed here
+
+    # Update borrow/lend record as settled
     borrow_lend_record = milk_request.borrow_lend_records.first()
-    # # Record the milk received for the borrower from inter-seller
-    # MilkReceived.objects.create(
-    #     seller=milk_request.from_seller,
-    #     quantity=milk_request.quantity,
-    #     date=date.today(),
-    #     source='Inter Seller'
-    # )
-
-    # # Update the total milk received for the seller (this will be reflected in the summary)
-    # # The summary already aggregates all MilkReceived, so no additional update needed here
-
-    # # Update borrow/lend record as settled
-    # borrow_lend_record = milk_request.borrow_lend_records.first()
     if borrow_lend_record:
         borrow_lend_record.settled = True
         borrow_lend_record.save()
@@ -704,12 +674,9 @@ def get_datewise_data(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@transaction.atomic
 def add_manager(request):
     """Admin creates new manager."""
-    if not hasattr(request.user, "admin_profile"):
-        return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
-
     serializer = ManagerCreateSerializer(data=request.data)
     if serializer.is_valid():
         manager = serializer.save()
@@ -718,32 +685,38 @@ def add_manager(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def list_managers(request):
-    """List all managers (Admin only)."""
-    if not hasattr(request.user, "admin_profile"):
-        return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
-
+    """List all managers."""
     managers = Manager.objects.filter(user__is_active=True)
     return Response(ManagerSerializer(managers, many=True).data, status=status.HTTP_200_OK)
 
 
+# --- FIX: Corrected delete_manager view ---
 @api_view(['DELETE'])
 @transaction.atomic
 def delete_manager(request, manager_id):
     """
     Admin deletes a manager.
-    The on_delete=models.CASCADE on the Manager's user field
-    will automatically delete the associated User account.
+    
+    --- FIX ---
+    We find the manager, get their associated user, and delete the USER.
+    The on_delete=models.CASCADE on the Manager model's 'user' field
+    will then automatically delete the Manager profile.
     """
     try:
+        # Use the string manager_id you created (e.g., "manager001")
         manager = get_object_or_404(Manager, manager_id=manager_id)
         
-        manager.delete()
+        # Get the user associated with this manager
+        user_to_delete = manager.user
         
-        return Response({'message': 'Manager deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+        # Delete the User. The Manager object will be deleted by CASCADE.
+        user_to_delete.delete()
+        
+        return Response({'message': 'Manager and associated user deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     except Exception as e:
         return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+# --- END OF FIX ---
 
 
 def _parse_date(input_date):
@@ -753,88 +726,3 @@ def _parse_date(input_date):
     if isinstance(input_date, date):
         return input_date
     return datetime.strptime(input_date, '%Y-%m-%d').date()
-
-from django.db.models import Sum
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def manager_dashboard_stats(request):
-    """
-    Provides aggregated data for the manager dashboard,
-    covering the last 7 days.
-    """
-    manager = get_object_or_404(Manager, user=request.user)
-    today = date.today()
-    seven_days_ago = today - timedelta(days=6)
-
-    # 1. Get daily milk and expense data for the last 7 days
-    operations = DailyOperations.objects.filter(
-        manager=manager,
-        date__gte=seven_days_ago,
-        date__lte=today
-    ).order_by('date')
-
-    # 2. Get related data
-    milk_dist = MilkDistribution.objects.filter(
-        record__in=operations
-    ).values('date').annotate(
-        total_milk=Sum('total_milk'),
-        leftover_sales=Sum('leftover_sales')
-    )
-
-    expenses = ExpenseRecord.objects.filter(
-        record__in=operations
-    ).values('date').annotate(
-        total_expense=Sum('amount')
-    )
-
-    # 3. Format data for Chart.js
-    labels = [(seven_days_ago + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
-    milk_data = {item['date'].strftime('%Y-%m-%d'): item['total_milk'] for item in milk_dist}
-    sales_data = {item['date'].strftime('%Y-%m-%d'): item['leftover_sales'] for item in milk_dist}
-    expense_data = {item['date'].strftime('%Y-%m-%d'): item['total_expense'] for item in expenses}
-
-    chart_data = {
-        'labels': labels,
-        'datasets': [
-            {
-                'label': 'Total Milk (L)',
-                'data': [float(milk_data.get(label, 0)) for label in labels],
-                'borderColor': '#667eea',
-                'backgroundColor': 'rgba(102, 126, 234, 0.1)',
-                'fill': True,
-                'tension': 0.1
-            },
-            {
-                'label': 'Leftover Sales (₹)',
-                'data': [float(sales_data.get(label, 0)) for label in labels],
-                'borderColor': '#27ae60',
-                'backgroundColor': 'rgba(39, 174, 96, 0.1)',
-                'fill': True,
-                'tension': 0.1
-            },
-            {
-                'label': 'Total Expenses (₹)',
-                'data': [float(expense_data.get(label, 0)) for label in labels],
-                'borderColor': '#e74c3c',
-                'backgroundColor': 'rgba(231, 76, 60, 0.1)',
-                'fill': True,
-                'tension': 0.1
-            }
-        ]
-    }
-
-    # 4. Get other stats
-    total_employees = Employee.objects.filter(manager=manager, is_active=True).count()
-    total_locations = Location.objects.count()
-
-    today_milk = milk_dist.filter(date=today).aggregate(total=Sum('total_milk'))['total'] or 0
-    today_expenses = expenses.filter(date=today).aggregate(total=Sum('total_expense'))['total'] or 0
-
-    return Response({
-        'chart_data': chart_data,
-        'total_employees': total_employees,
-        'total_locations': total_locations,
-        'today_milk': today_milk,
-        'today_expenses': today_expenses
-    }, status=status.HTTP_200_OK)
