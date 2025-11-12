@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dairy Farm Management System</title>
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Manager Dashboard -->
@@ -25,16 +26,50 @@
                 </div>
             </div>
             <div class="dashboard-content">
-                <div class="tabs">
+                <!-- <div class="tabs">
                     <button class="tab active" onclick="switchTab(event, 'dailyData')">Daily Data</button>
                     <button class="tab" onclick="switchTab(event, 'occasionalExpenses')">Occasional Expenses</button>
                     <button class="tab" onclick="switchTab(event, 'datewiseData')">Datewise Data</button>
                     <button class="tab" onclick="switchTab(event, 'employeeMgmt')">Employee Management</button>
                     <button class="tab" onclick="switchTab(event, 'locationMgmt')">Location Management</button>
+                </div> -->
+                <div class="tabs">
+                <button class="tab active" onclick="switchTab(event, 'mainDashboard')">Dashboard</button>
+                <button class="tab" onclick="switchTab(event, 'dailyData')">Daily Data</button>
+                <button class="tab" onclick="switchTab(event, 'occasionalExpenses')">Occasional Expenses</button>
+                <button class="tab" onclick="switchTab(event, 'datewiseData')">Datewise Data</button>
+                <button class="tab" onclick="switchTab(event, 'employeeMgmt')">Employee Management</button>
+                <button class="tab" onclick="switchTab(event, 'locationMgmt')">Location Management</button>
+            </div>
+
+            <div class="tab-content active" id="mainDashboard">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Today's Total Milk</h4>
+                        <div class="value"><span id="dashTodayMilk">0</span> L</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Today's Total Expenses</h4>
+                        <div class="value">₹<span id="dashTodayExpenses">0</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Active Employees</h4>
+                        <div class="value" id="dashTotalEmployees">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Total Locations</h4>
+                        <div class="value" id="dashTotalLocations">0</div>
+                    </div>
                 </div>
 
+                <div class="card">
+                    <h3><span class="card-icon">📈</span>Last 7 Days Overview</h3>
+                    <canvas id="managerStatsChart" height="120"></canvas>
+                </div>
+            </div>
+
                 <!-- Daily Data Entry Tab -->
-                <div class="tab-content active" id="dailyData">
+                <div class="tab-content" id="dailyData">
                     <div class="card">
                         <h3><span class="card-icon">🌾</span>Daily Feed Entry</h3>
                         <form id="feedEntryForm">
@@ -444,5 +479,22 @@
         </div>
     </div>
     <script src="{% static 'js/scripts.js' %}"></script>
+    <div id="successModal" class="modal">
+    <div class="modal-content success">
+        <div class="modal-icon">✓</div>
+        <h3>Success!</h3>
+        <p id="successMessage">Your action was completed successfully.</p>
+        <button onclick="closeModal()" class="btn-primary">OK</button>
+    </div>
+</div>
+
+<div id="errorModal" class="modal">
+    <div class="modal-content error">
+        <div class="modal-icon">✗</div>
+        <h3>Operation Failed</h3>
+        <p id="errorMessage">An error occurred. Please try again.</p>
+        <button onclick="closeModal()" class="btn-primary">OK</button>
+    </div>
+</div>
 </body>
 </html>

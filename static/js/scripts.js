@@ -1,5 +1,27 @@
 const BASE_URL = "/api";
 
+// --- START: Modal Helper Functions ---
+function showModal(modalId, message) {
+    const modal = document.getElementById(modalId);
+    if (!modal) {
+        console.error("Modal not found:", modalId);
+        return;
+    }
+    
+    if (modalId === 'successModal') {
+        modal.querySelector('#successMessage').textContent = message;
+    } else if (modalId === 'errorModal') {
+        modal.querySelector('#errorMessage').textContent = message;
+    }
+    modal.classList.add('show');
+}
+
+function closeModal() {
+    document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('show'));
+}
+// --- END: Modal Helper Functions ---
+
+
 function getCurrentDate() {
   return new Date().toISOString().split("T")[0];
 }
@@ -73,16 +95,38 @@ async function apiFetch(url, options = {}) {
   options.headers = headers;
   const res = await fetch(url, options);
   if (!res.ok) {
-    const err = await res.text();
+    let err = 'An unknown error occurred.';
+    try {
+        // Try to parse error response as JSON
+        const errData = await res.json();
+        // Join multiple errors if they exist (e.g., from serializer)
+        err = Object.values(errData).map(e => Array.isArray(e) ? e.join(' ') : e).join(' ');
+    } catch (e) {
+        // Fallback to text if not JSON
+        err = await res.text();
+    }
     console.error("API error:", err);
-    alert("Error: " + err);
+    // Use the new modal for errors
+    showModal('errorModal', err);
     throw new Error(err);
   }
-  return res.json();
+  // Check for empty JSON response (e.g., from a 204 No Content)
+  const text = await res.text();
+  return text ? JSON.parse(text) : {};
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   setTodayDates();
+
+  // --- START: Add Modal Close Listeners ---
+  document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+  });
+  // --- END: Add Modal Close Listeners ---
 
   if (document.getElementById("managerDashboard")) {
     loadEmployees();
@@ -106,7 +150,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const password = document.getElementById("password").value.trim();
 
       if (!role || !username || !password) {
-        alert("⚠️ Please fill all fields before logging in.");
+        // REPLACED alert()
+        showModal('errorModal', 'Please fill all fields before logging in.');
         return;
       }
 
@@ -130,14 +175,14 @@ document.addEventListener("DOMContentLoaded", () => {
           sessionStorage.setItem("user_id", data.user.user_id);
           sessionStorage.setItem("userData", JSON.stringify(data.user));
 
-          alert("✅ Login successful!");
-
+          // REMOVED alert() - The redirect is immediate, so no alert is needed.
+          
           const userRole = data.user.role;
           if (userRole === "admin") window.location.href = "/admin/";
           else if (userRole === "manager") window.location.href = "/manager/";
           else if (userRole === "employee") window.location.href = "/employee/";
           else if (userRole === "seller") window.location.href = "/seller/";
-          else alert("Unknown user role. Please contact admin.");
+          else showModal('errorModal', 'Unknown user role. Please contact admin.');
         }
 
         else {
@@ -145,11 +190,13 @@ document.addEventListener("DOMContentLoaded", () => {
             data.message ||
             data.detail ||
             "❌ Invalid credentials or role mismatch.";
-          alert(errorMsg);
+          // REPLACED alert()
+          showModal('errorModal', errorMsg);
         }
       } catch (error) {
         console.error("Login error:", error);
-        alert("❌ Could not connect to the server. Please try again later.");
+        // REPLACED alert()
+        showModal('errorModal', 'Could not connect to the server. Please try again later.');
       }
     });
   }
@@ -166,12 +213,14 @@ document.addEventListener("DOMContentLoaded", () => {
         feed_type: form.get("feedType"),
         quantity: parseFloat(form.get("quantity")),
         cost: parseFloat(form.get("cost")),
-        date: getCurrentDate(),
+        date: getSelectedDate(), // Use selected date
       };
       await apiFetch(`${BASE_URL}/manager/feed/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Feed entry saved!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Feed entry saved!');
       e.target.reset();
-      window.location.reload();
+      // Optionally, update the "Datewise Data" tab dynamically
+      loadDatewiseData(getSelectedDate());
     });
   }
 
@@ -183,12 +232,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = {
         category: f.get("category"),
         amount: parseFloat(f.get("amount")),
-        date: getCurrentDate(),
+        date: getSelectedDate(), // Use selected date
       };
       await apiFetch(`${BASE_URL}/manager/expense/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Expense saved!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Expense saved!');
       e.target.reset();
-      window.location.reload();
+      loadDatewiseData(getSelectedDate());
     });
   }
 
@@ -200,12 +250,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = {
         locationId: f.get("locationId"),
         quantity: parseFloat(f.get("quantity")),
-        date: getCurrentDate(),
+        date: getSelectedDate(), // Use selected date
       };
       await apiFetch(`${BASE_URL}/manager/milk-distribution/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Milk distribution recorded!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Milk distribution recorded!');
       e.target.reset();
-      window.location.reload();
+      loadDatewiseData(getSelectedDate());
+      loadLocations(); // Refresh location stats
     });
   }
 
@@ -217,12 +269,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = {
         leftoverMilk: parseFloat(f.get("leftoverMilk")),
         leftoverSales: parseFloat(f.get("leftoverSales")),
-        date: getCurrentDate(),
+        date: getSelectedDate(), // Use selected date
       };
       await apiFetch(`${BASE_URL}/manager/leftover-milk/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Leftover milk data updated!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Leftover milk data updated!');
       e.target.reset();
-      window.location.reload();
+      loadDatewiseData(getSelectedDate());
     });
   }
 
@@ -234,12 +287,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = {
         category: f.get("category"),
         amount: parseFloat(f.get("amount")),
-        date: getCurrentDate(),
+        date: getSelectedDate(), // Use selected date
       };
       await apiFetch(`${BASE_URL}/misc-expenses/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Miscellaneous expense saved!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Miscellaneous expense saved!');
       e.target.reset();
-      window.location.reload();
+      loadDatewiseData(getSelectedDate());
     });
   }
 
@@ -251,12 +305,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = {
         medicine_name: f.get("medicineName"),
         cost: parseFloat(f.get("cost")),
-        date: getCurrentDate(),
+        date: getSelectedDate(), // Use selected date
       };
       await apiFetch(`${BASE_URL}/manager/medicine/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Medicine purchase recorded!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Medicine purchase recorded!');
       e.target.reset();
-      window.location.reload();
+      loadDatewiseData(getSelectedDate());
     });
   }
 
@@ -270,13 +325,24 @@ document.addEventListener("DOMContentLoaded", () => {
         password: f.get("password"),
         name: f.get("name"),
         base_salary: parseFloat(f.get("baseSalary")),
-        manager_id: sessionStorage.getItem("user_id"),
+        manager_id: sessionStorage.getItem("user_id"), // This is incorrect, manager_id is not user_id
       };
+      
+      // Correcting: Get manager_id from user data
+      const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+      data.manager_id = userData.manager_id; // Assumes manager_id was stored on login
+
+      if (!data.manager_id) {
+          showModal('errorModal', 'Could not find Manager ID. Please re-login.');
+          return;
+      }
+      
       await apiFetch(`${BASE_URL}/manager/employees/add/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Employee added!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Employee added!');
       e.target.reset();
       loadEmployees();
-      window.location.reload();
+      loadDatewiseData(getSelectedDate());
     });
   }
 
@@ -291,18 +357,20 @@ document.addEventListener("DOMContentLoaded", () => {
         amount: parseFloat(f.get("amount")),
       };
       await apiFetch(`${BASE_URL}/manager/deductions/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Deduction applied!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Deduction applied!');
       e.target.reset();
-      window.location.reload();
+      loadDatewiseData(getSelectedDate());
     });
   }
 
   window.markAttendance = async function (employeeId, status) {
-    const date = document.getElementById("attendanceDate")?.value || getCurrentDate();
+    const date = document.getElementById("attendanceDate")?.value || getSelectedDate();
     const data = { employeeId: employeeId, date, status };
     await apiFetch(`${BASE_URL}/manager/attendance/`, { method: "POST", body: JSON.stringify(data) });
-    alert(`Attendance marked ${status} for ${employeeId}`);
-    window.location.reload();
+    // REPLACED alert() and reload()
+    showModal('successModal', `Attendance marked ${status} for ${employeeId}`);
+    loadDatewiseData(getSelectedDate());
   };
 
   const addLocationForm = document.getElementById("addLocationForm");
@@ -315,10 +383,11 @@ document.addEventListener("DOMContentLoaded", () => {
         address: f.get("address"),
       };
       const location = await apiFetch(`${BASE_URL}/manager/locations/`, { method: "POST", body: JSON.stringify(loc) });
-      alert(`Location ${location.location_name} added!`);
+      // REPLACED alert() and reload()
+      showModal('successModal', `Location ${location.location_name} added!`);
       e.target.reset();
       loadLocations();
-      window.location.reload();
+      loadLocationsForMilkDistribution();
     });
   }
 
@@ -334,16 +403,16 @@ document.addEventListener("DOMContentLoaded", () => {
         location_id: f.get("locationId"),
       };
       await apiFetch(`${BASE_URL}/manager/sellers/add/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Seller added!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Seller added!');
       e.target.reset();
       loadSellers();
-      window.location.reload();
+      loadLocations(); // Refresh location stats
     });
   }
 
 
   if (document.getElementById("sellerDashboard")) {
-    // Initialize date selector with current date
     const dateSelector = document.getElementById('dateSelector');
     if (dateSelector) {
       dateSelector.value = getCurrentDate();
@@ -356,6 +425,10 @@ document.addEventListener("DOMContentLoaded", () => {
     loadIncomingRequests();
     loadMyRequests();
     loadBorrowLendHistory();
+    // Set user info
+    const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+    document.getElementById('sellerName').textContent = userData.name || 'Seller';
+    document.getElementById('sellerLocation').textContent = userData.location_name || 'N/A';
   }
 
   const milkReceivedForm = document.getElementById("milkReceivedForm");
@@ -368,11 +441,11 @@ document.addEventListener("DOMContentLoaded", () => {
         date: getSelectedDate(),
       };
       await apiFetch(`${BASE_URL}/seller/milk-received/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Milk received recorded!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Milk received recorded!');
       e.target.reset();
       updateDateInputs();
       loadSellerSummary();
-      window.location.reload();
     });
   }
 
@@ -381,7 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dailySalesForm.addEventListener("input", e => {
       const cash = parseFloat(dailySalesForm.querySelector('[name="cashEarned"]').value) || 0;
       const online = parseFloat(dailySalesForm.querySelector('[name="onlineEarned"]').value) || 0;
-      dailySalesForm.querySelector('[name="revenue"]').value = cash + online;
+      dailySalesForm.querySelector('[name="revenue"]').value = (cash + online).toFixed(2);
     });
     dailySalesForm.addEventListener("submit", async e => {
       e.preventDefault();
@@ -393,11 +466,11 @@ document.addEventListener("DOMContentLoaded", () => {
         date: getSelectedDate(),
       };
       await apiFetch(`${BASE_URL}/seller/sales/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Daily sales recorded!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Daily sales recorded!');
       e.target.reset();
       updateDateInputs();
       loadSellerSummary();
-      window.location.reload();
     });
   }
 
@@ -410,9 +483,10 @@ document.addEventListener("DOMContentLoaded", () => {
         quantity: parseFloat(f.get("quantity")),
       };
       await apiFetch(`${BASE_URL}/seller/milk-request/create/`, { method: "POST", body: JSON.stringify(data) });
-      alert("Milk request sent!");
+      // REPLACED alert() and reload()
+      showModal('successModal', 'Milk request sent!');
       e.target.reset();
-      window.location.reload();
+      loadMyRequests();
     });
   }
 
@@ -421,9 +495,10 @@ document.addEventListener("DOMContentLoaded", () => {
       method: "POST",
       body: JSON.stringify({}),
     });
-    alert("Request accepted! Status changed to On Hold.");
+    // REPLACED alert() and reload()
+    showModal('successModal', 'Request accepted! Status changed to On Hold.');
     loadIncomingRequests();
-    window.location.reload();
+    loadBorrowLendHistory();
   };
 
   window.markAsReceived = async function (requestId) {
@@ -431,9 +506,11 @@ document.addEventListener("DOMContentLoaded", () => {
       method: "POST",
       body: JSON.stringify({}),
     });
-    alert("Milk marked as received! Transaction completed.");
+    // REPLACED alert()
+    showModal('successModal', 'Milk marked as received! Transaction completed.');
     loadMyRequests();
     loadSellerSummary();
+    loadBorrowLendHistory();
   };
 
   async function loadSellerSummary() {
@@ -447,6 +524,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("todayOnline").textContent = summary.total_sold;
     } catch (error) {
       console.error("Failed to load seller summary:", error);
+      // Don't show modal, this load is passive
     }
   }
 
@@ -630,19 +708,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   window.viewEmployeeDetails = function(employeeId) {
-    alert(`Viewing details for employee ${employeeId}`);
+    // This function is just a placeholder, but we can make it do something
+    showModal('successModal', `Viewing details for employee ${employeeId}. (Functionality to be added)`);
   };
 
 
   async function loadLocations() {
-  try {
-    const locations = await apiFetch(`${BASE_URL}/manager/locations/`);
-    populateLocationGrid(locations);
-    populateSellerLocationSelect(locations);
-  } catch (error) {
-    console.error("Failed to load locations:", error);
+    try {
+      const locations = await apiFetch(`${BASE_URL}/manager/locations/`);
+      populateLocationGrid(locations);
+      populateSellerLocationSelect(locations);
+    } catch (error) {
+      console.error("Failed to load locations:", error);
+    }
   }
-}
 
   function populateLocationGrid(locations) {
     const grid = document.getElementById("locationGrid");
@@ -710,6 +789,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadEmployeeDashboard() {
     try {
+      // Set user info
+      const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+      document.getElementById('employeeName').textContent = userData.name || 'Employee';
+      
       const data = await apiFetch(`${BASE_URL}/employee/dashboard/`);
       document.getElementById("daysWorked").textContent = `${data.days_worked} / ${data.total_days}`;
       document.getElementById("attendancePercent").textContent = `${data.attendance_percentage}%`;
@@ -774,29 +857,42 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await apiFetch(`${BASE_URL}/manager/datewise-data/?date=${selectedDate}`);
 
       populateTable('feedRecordsTable', data.feed_records, ['feed_type', 'quantity', 'cost'], ['Feed Type', 'Quantity (kg)', 'Cost (₹)']);
-
       populateTable('expensesTable', data.expense_records, ['category', 'amount'], ['Category', 'Amount (₹)']);
-
       populateTable('medicineTable', data.medicine_records, ['medicine_name', 'cost'], ['Medicine Name', 'Cost (₹)']);
-
-      populateTable('milkDistributionTable', data.milk_distribution, ['total_milk', 'leftover_milk', 'leftover_sales'], ['Total Milk (L)', 'Leftover Milk (L)', 'Leftover Sales (₹)']);
+      
+      // Handle possibility of no milk distribution record
+      const milkDistData = data.milk_distribution.length > 0 ? data.milk_distribution : [{ total_milk: 0, leftover_milk: 0, leftover_sales: 0 }];
+      populateTable('milkDistributionTable', milkDistData, ['total_milk', 'leftover_milk', 'leftover_sales'], ['Total Milk (L)', 'Leftover Milk (L)', 'Leftover Sales (₹)']);
 
       populateTable('milkReceivedTable', data.milk_received, ['seller_name', 'quantity', 'source'], ['Seller Name', 'Quantity (L)', 'Source']);
-
       populateTable('dailyTotalsTable', data.daily_totals, ['seller_name', 'total_received', 'total_sold', 'revenue'], ['Seller Name', 'Total Received (₹)', 'Total Sold (₹)', 'Revenue (₹)']);
-
-      populateTable('attendanceTable', data.attendance, ['employee_name', 'status'], ['Employee Name', 'Status']);
+      
+      // Handle attendance table ID conflict
+      const attendanceTable = document.querySelector('#datewiseData #attendanceTable tbody');
+      if (attendanceTable) {
+        populateTable(attendanceTable.closest('table').id, data.attendance, ['employee_name', 'status'], ['Employee Name', 'Status']);
+      }
 
     } catch (error) {
       console.error("Failed to load datewise data:", error);
-      alert("Failed to load data for the selected date.");
+      showModal('errorModal', "Failed to load data for the selected date.");
     }
   }
 
   function populateTable(tableId, data, fields, headers) {
-    const tbody = document.querySelector(`#${tableId} tbody`);
+    const table = document.getElementById(tableId);
+    if (!table) {
+        console.warn('Table not found:', tableId);
+        return;
+    }
+    const tbody = table.querySelector("tbody");
+    if (!tbody) {
+        console.warn('Tbody not found for table:', tableId);
+        return;
+    }
+    
     tbody.innerHTML = "";
-    if (data.length === 0) {
+    if (!data || data.length === 0) {
       const colspan = headers.length;
       tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align: center; color: #999;">No data available</td></tr>`;
       return;
@@ -806,10 +902,11 @@ document.addEventListener("DOMContentLoaded", () => {
       fields.forEach(field => {
         const cell = document.createElement("td");
         let value = item[field];
+        if (typeof value === 'number') {
+            value = value.toFixed(2);
+        }
         if (field.includes('cost') || field.includes('amount') || field.includes('received') || field.includes('sold') || field.includes('revenue')) {
-          value = `₹${parseFloat(value).toFixed(2)}`;
-        } else if (field.includes('quantity') || field.includes('milk')) {
-          value = `${parseFloat(value).toFixed(2)}`;
+          value = `₹${value}`;
         }
         cell.textContent = value;
         row.appendChild(cell);
@@ -831,6 +928,11 @@ document.addEventListener("DOMContentLoaded", () => {
           loadDatewiseData(selectedDate);
         }
       });
+      
+      // Set manager name from session storage
+      const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+      document.getElementById('managerName').textContent = userData.name || 'Manager';
+      loadManagerDashboardStats();
       // Load initial data
       loadDailyDataForDate(getCurrentDate());
       loadDatewiseData(getCurrentDate());
@@ -841,6 +943,13 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadDailyDataForDate(selectedDate) {
     try {
       const data = await apiFetch(`${BASE_URL}/manager/daily-data/?date=${selectedDate}`);
+      
+      // Clear all forms first
+      document.getElementById("feedEntryForm")?.reset();
+      document.getElementById("dailyExpenseForm")?.reset();
+      document.getElementById("medicineForm")?.reset();
+      document.getElementById("leftoverMilkForm")?.reset();
+      document.getElementById("miscExpenseForm")?.reset();
 
       // Load feed records
       if (data.feed_records && data.feed_records.length > 0) {
@@ -852,70 +961,48 @@ document.addEventListener("DOMContentLoaded", () => {
           feedForm.querySelector('[name="quantity"]').value = feedRecord.quantity;
           feedForm.querySelector('[name="cost"]').value = feedRecord.cost;
         }
-      } else {
-        // Clear form if no data
-        const feedForm = document.getElementById("feedEntryForm");
-        if (feedForm) {
-          feedForm.querySelector('[name="recordId"]').value = '';
-          feedForm.reset();
-        }
       }
 
-      // Load expense records (daily expenses)
-      const dailyExpenseForm = document.getElementById("dailyExpenseForm");
-      if (dailyExpenseForm && data.expense_records) {
-        const dailyExpenses = data.expense_records.filter(record => record.category !== 'Miscellaneous' && record.category !== 'Medicine');
-        if (dailyExpenses.length > 0) {
-          const expenseRecord = dailyExpenses[0];
-          dailyExpenseForm.querySelector('[name="recordId"]').value = expenseRecord.expense_id;
-          dailyExpenseForm.querySelector('[name="category"]').value = expenseRecord.category;
-          dailyExpenseForm.querySelector('[name="amount"]').value = expenseRecord.amount;
-        } else {
-          dailyExpenseForm.querySelector('[name="recordId"]').value = '';
-          dailyExpenseForm.reset();
+      // Load expense records
+      if (data.expense_records) {
+        // Daily Expenses
+        const dailyExpenseForm = document.getElementById("dailyExpenseForm");
+        const dailyExpense = data.expense_records.find(r => r.category !== 'Miscellaneous' && r.category !== 'Medicine'); // Simple filter
+        if (dailyExpense && dailyExpenseForm) {
+          dailyExpenseForm.querySelector('[name="recordId"]').value = dailyExpense.expense_id;
+          dailyExpenseForm.querySelector('[name="category"]').value = dailyExpense.category;
+          dailyExpenseForm.querySelector('[name="amount"]').value = dailyExpense.amount;
+        }
+        
+        // Misc Expenses
+        const miscExpenseForm = document.getElementById("miscExpenseForm");
+        const miscExpense = data.expense_records.find(r => r.category === 'Miscellaneous'); // Simple filter
+        if (miscExpense && miscExpenseForm) {
+          miscExpenseForm.querySelector('[name="recordId"]').value = miscExpense.expense_id;
+          miscExpenseForm.querySelector('[name="category"]').value = miscExpense.category;
+          miscExpenseForm.querySelector('[name="amount"]').value = miscExpense.amount;
         }
       }
 
       // Load medicine records
-      const medicineForm = document.getElementById("medicineForm");
-      if (medicineForm && data.medicine_records && data.medicine_records.length > 0) {
+      if (data.medicine_records && data.medicine_records.length > 0) {
         const medicineRecord = data.medicine_records[0];
-        medicineForm.querySelector('[name="recordId"]').value = medicineRecord.medicine_id;
-        medicineForm.querySelector('[name="medicineName"]').value = medicineRecord.medicine_name;
-        medicineForm.querySelector('[name="cost"]').value = medicineRecord.cost;
-      } else {
+        const medicineForm = document.getElementById("medicineForm");
         if (medicineForm) {
-          medicineForm.querySelector('[name="recordId"]').value = '';
-          medicineForm.reset();
+          medicineForm.querySelector('[name="recordId"]').value = medicineRecord.medicine_id;
+          medicineForm.querySelector('[name="medicineName"]').value = medicineRecord.medicine_name;
+          medicineForm.querySelector('[name="cost"]').value = medicineRecord.cost;
         }
       }
 
       // Load leftover milk data
-      const leftoverMilkForm = document.getElementById("leftoverMilkForm");
-      if (leftoverMilkForm && data.milk_distribution && data.milk_distribution.length > 0) {
+      if (data.milk_distribution && data.milk_distribution.length > 0) {
         const milkDist = data.milk_distribution[0];
-        leftoverMilkForm.querySelector('[name="recordId"]').value = milkDist.distribution_id;
-        leftoverMilkForm.querySelector('[name="leftoverMilk"]').value = milkDist.leftover_milk;
-        leftoverMilkForm.querySelector('[name="leftoverSales"]').value = milkDist.leftover_sales;
-      } else {
+        const leftoverMilkForm = document.getElementById("leftoverMilkForm");
         if (leftoverMilkForm) {
-          leftoverMilkForm.querySelector('[name="recordId"]').value = '';
-          leftoverMilkForm.reset();
-        }
-      }
-
-      // Load miscellaneous expenses
-      const miscExpenseForm = document.getElementById("miscExpenseForm");
-      if (miscExpenseForm && data.expense_records) {
-        const miscExpenses = data.expense_records.filter(record => record.category === 'Miscellaneous' || record.category === 'Medicine');
-        if (miscExpenses.length > 0) {
-          const miscRecord = miscExpenses[0];
-          miscExpenseForm.querySelector('[name="recordId"]').value = miscRecord.expense_id;
-          miscExpenseForm.querySelector('[name="category"]').value = miscRecord.category;
-          miscExpenseForm.querySelector('[name="amount"]').value = miscRecord.amount;
-        } else {
-          miscExpenseForm.querySelector('[name="recordId"]').value = '';
-          miscExpenseForm.reset();
+          leftoverMilkForm.querySelector('[name="recordId"]').value = milkDist.distribution_id;
+          leftoverMilkForm.querySelector('[name="leftoverMilk"]').value = milkDist.leftover_milk;
+          leftoverMilkForm.querySelector('[name="leftoverSales"]').value = milkDist.leftover_sales;
         }
       }
 
@@ -924,3 +1011,89 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 });
+
+let managerChartInstance = null; // Global variable to hold the chart instance
+
+/**
+ * Fetches data from the dashboard-stats endpoint and populates
+ * the stat cards and the chart.
+ */
+async function loadManagerDashboardStats() {
+  try {
+    const data = await apiFetch(`${BASE_URL}/manager/dashboard-stats/`);
+
+    // 1. Populate the stat cards
+    document.getElementById("dashTodayMilk").textContent = parseFloat(data.today_milk).toFixed(2);
+    document.getElementById("dashTodayExpenses").textContent = parseFloat(data.today_expenses).toFixed(2);
+    document.getElementById("dashTotalEmployees").textContent = data.total_employees;
+    document.getElementById("dashTotalLocations").textContent = data.total_locations;
+
+    // 2. Initialize or update the chart
+    initializeManagerChart(data.chart_data);
+
+  } catch (error) {
+    console.error("Failed to load manager dashboard stats:", error);
+    showModal('errorModal', 'Could not load dashboard statistics.');
+  }
+}
+
+/**
+ * Initializes or updates the Chart.js instance for the manager dashboard.
+ * @param {object} chartData - The data object from the API (labels, datasets)
+ */
+function initializeManagerChart(chartData) {
+  const ctx = document.getElementById('managerStatsChart');
+  if (!ctx) return; // Exit if chart canvas isn't on the page
+
+  // If the chart instance already exists, destroy it before creating a new one
+  if (managerChartInstance) {
+    managerChartInstance.destroy();
+  }
+
+  // Create the new chart
+  managerChartInstance = new Chart(ctx, {
+    type: 'line', // Type of chart
+    data: chartData, // Data from our API
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            // Prepend '₹' or 'L' to the Y-axis ticks
+            callback: function(value, index, ticks) {
+                // Heuristic: if most values are > 1000, it's likely currency
+                // This is a simple example; you might need a more robust way
+                // to distinguish between liters and currency if they are in similar ranges.
+                // For now, let's just show the raw value.
+                return value;
+            }
+          }
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              let value = context.parsed.y;
+              if (label.includes('(₹)')) {
+                label += `₹${value.toFixed(2)}`;
+              } else if (label.includes('(L)')) {
+                label += `${value.toFixed(2)} L`;
+              } else {
+                label += value;
+              }
+              return label;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+

@@ -1,4 +1,4 @@
-from django.db import models, IntegrityError
+from django.db import models, IntegrityError, transaction
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
 # from django.db.models.signals import post_save
@@ -112,18 +112,39 @@ class Employee(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # def save(self, *args, **kwargs):
+    #     if not self.employee_id:
+    #         last_employee = Employee.objects.order_by('-employee_id').first()
+    #         if last_employee and last_employee.employee_id.startswith('EMP'):
+    #             try:
+    #                 num = int(last_employee.employee_id[3:]) + 1
+    #                 self.employee_id = f'EMP{num:03d}'
+    #             except ValueError:
+    #                 self.employee_id = 'EMP001'
+    #         else:
+    #             self.employee_id = 'EMP001'
+    #     super().save(*args, **kwargs)
+
     def save(self, *args, **kwargs):
-        if not self.employee_id:
-            last_employee = Employee.objects.order_by('-employee_id').first()
+     if not self.employee_id:
+        # Use a transaction to prevent race conditions
+        with transaction.atomic():
+            # Lock the Employee table for reading to find the last ID
+            last_employee = Employee.objects.select_for_update().order_by('-employee_id').first()
+
             if last_employee and last_employee.employee_id.startswith('EMP'):
                 try:
                     num = int(last_employee.employee_id[3:]) + 1
                     self.employee_id = f'EMP{num:03d}'
                 except ValueError:
+                    # Fallback in case of unexpected ID format
                     self.employee_id = 'EMP001'
             else:
+                # No employees exist yet, start from 001
                 self.employee_id = 'EMP001'
-        super().save(*args, **kwargs)
+
+    # Save the instance *after* the transaction block is complete
+     super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
