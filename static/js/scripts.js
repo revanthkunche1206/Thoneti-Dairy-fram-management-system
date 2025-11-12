@@ -1,4 +1,21 @@
 const BASE_URL = "/api";
+let locationSalesChart = null;
+let expensePieChart = null;
+let milkUsageChart = null;
+let salesTrendChart = null;
+
+const CHART_COLORS = [
+    'rgba(255, 99, 132, 0.7)',
+    'rgba(54, 162, 235, 0.7)',
+    'rgba(255, 206, 86, 0.7)',
+    'rgba(75, 192, 192, 0.7)',
+    'rgba(153, 102, 255, 0.7)',
+    'rgba(255, 159, 64, 0.7)',
+    'rgba(199, 199, 199, 0.7)',
+    'rgba(83, 102, 255, 0.7)',
+    'rgba(40, 159, 64, 0.7)',
+    'rgba(210, 99, 132, 0.7)'
+];
 
 function showModal(modalId, message) {
     closeModal();
@@ -994,6 +1011,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       document.getElementById("dashTodayExpenses").textContent = totalExpenses.toFixed(2);
       
+
+
+      initLocationSalesChart(data.daily_totals);
+      initExpensePieChart(data.feed_records, data.expense_records, data.medicine_records);
+      initMilkUsageChart(data.milk_distribution);
+
+
       populateTable('feedRecordsTable', data.feed_records, ['feed_type', 'quantity', 'cost'], ['Feed Type', 'Quantity (kg)', 'Cost (₹)']);
       populateTable('expensesTable', data.expense_records, ['category', 'amount'], ['Category', 'Amount (₹)']);
       populateTable('medicineTable', data.medicine_records, ['medicine_name', 'cost'], ['Medicine Name', 'Cost (₹)']);
@@ -1066,6 +1090,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
       loadManagerCardStats();
+      loadSalesTrendChart();
       const today = getCurrentDate();
       loadDailyDataForDate(today);
       loadDatewiseData(today);
@@ -1157,5 +1182,175 @@ async function loadManagerCardStats() {
 
     } catch (error) {
         console.error("Failed to load manager card stats:", error);
+    }
+}
+
+
+
+// --- ADD THESE FOUR NEW FUNCTIONS ---
+
+function initLocationSalesChart(dailyTotals) {
+    const ctx = document.getElementById('locationSalesChart').getContext('2d');
+    
+    // Process data: Group sales by location
+    const salesByLocation = dailyTotals.reduce((acc, sale) => {
+        const location = sale.location_name || 'Unknown';
+        if (!acc[location]) {
+            acc[location] = 0;
+        }
+        acc[location] += parseFloat(sale.revenue);
+        return acc;
+    }, {});
+
+    const labels = Object.keys(salesByLocation);
+    const data = Object.values(salesByLocation);
+
+    if (locationSalesChart) {
+        locationSalesChart.destroy();
+    }
+    locationSalesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total Revenue (₹)',
+                data: data,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            responsive: true
+        }
+    });
+}
+
+function initExpensePieChart(feed, expenses, medicine) {
+    const ctx = document.getElementById('expensePieChart').getContext('2d');
+    
+    const categories = {};
+
+    feed.forEach(item => {
+        const category = item.feed_type || 'Feed (Uncategorized)';
+        const cost = parseFloat(item.cost);
+        if (!categories[category]) {
+            categories[category] = 0;
+        }
+        categories[category] += cost;
+    });
+
+    expenses.forEach(item => {
+        const category = item.category || 'Other Expense';
+        const cost = parseFloat(item.amount);
+        if (!categories[category]) {
+            categories[category] = 0;
+        }
+        categories[category] += cost;
+    });
+
+    medicine.forEach(item => {
+        const category = item.medicine_name || 'Medicine (Uncategorized)';
+        const cost = parseFloat(item.cost);
+        if (!categories[category]) {
+            categories[category] = 0;
+        }
+        categories[category] += cost;
+    });
+
+    const labels = Object.keys(categories);
+    const data = Object.values(categories);
+
+    const backgroundColors = labels.map((_, index) => CHART_COLORS[index % CHART_COLORS.length]);
+
+    if (expensePieChart) {
+        expensePieChart.destroy();
+    }
+    
+    expensePieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: labels.length > 0,
+                    position: 'top',
+                }
+            }
+        }
+    });
+}
+
+function initMilkUsageChart(milkDistribution) {
+    const ctx = document.getElementById('milkUsageChart').getContext('2d');
+    
+    const record = milkDistribution[0] || { total_milk: 0, leftover_milk: 0 };
+    const totalMilk = parseFloat(record.total_milk);
+    const leftoverMilk = parseFloat(record.leftover_milk);
+    const distributedMilk = totalMilk - leftoverMilk;
+
+    if (milkUsageChart) {
+        milkUsageChart.destroy();
+    }
+    milkUsageChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Milk Distributed', 'Milk Leftover'],
+            datasets: [{
+                data: [distributedMilk, leftoverMilk],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(201, 203, 207, 0.7)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+}
+
+async function loadSalesTrendChart() {
+    try {
+        const trendData = await apiFetch(`${BASE_URL}/manager/sales-trend/`);
+        const ctx = document.getElementById('salesTrendChart').getContext('2d');
+
+        const labels = trendData.map(item => item.day);
+        const data = trendData.map(item => item.daily_revenue);
+
+        if (salesTrendChart) {
+            salesTrendChart.destroy();
+        }
+        salesTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue (₹)',
+                    data: data,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true
+            }
+        });
+    } catch (error) {
+        console.error("Failed to load sales trend:", error);
     }
 }

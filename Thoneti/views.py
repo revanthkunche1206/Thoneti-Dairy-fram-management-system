@@ -13,6 +13,9 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+from datetime import date, timedelta
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
 
 from .models import (
     User, Manager, Employee, Seller, Location, DailyOperations,
@@ -281,7 +284,6 @@ def record_milk_distribution(request):
     update_milk_distribution_totals(daily_ops)
     return Response({'message': f'Milk distribution recorded for {seller_count} sellers.'}, status=status.HTTP_201_CREATED)
 
-# --- NEW VIEW 1 (for Seller) ---
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def list_pending_distributions(request):
@@ -884,3 +886,26 @@ def manager_dashboard_stats(request):
         }, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_sales_trend(request):
+    """
+    Returns aggregated sales revenue for the last 30 days.
+    """
+    manager = get_object_or_404(Manager, user=request.user)
+    
+    thirty_days_ago = date.today() - timedelta(days=30)
+    
+    sales_data = DailyTotal.objects.filter(
+        date__gte=thirty_days_ago
+    ).annotate(
+        day=TruncDate('date')
+    ).values(
+        'day'
+    ).annotate(
+        daily_revenue=Sum('revenue')
+    ).order_by('day')
+    
+    return Response(sales_data)

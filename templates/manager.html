@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dairy Farm Management System</title>
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="page active" id="managerDashboard">
@@ -34,7 +35,7 @@
             </div>
 
             <div class="tab-content active" id="mainDashboard">
-                <div class="stats-grid">
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 20px;">
                     <div class="stat-card">
                         <h4>Today's Total Milk</h4>
                         <div class="value"><span id="dashTodayMilk">0</span> L</div>
@@ -53,6 +54,24 @@
                     </div>
                 </div>
 
+                <div class="chart-grid">
+                    <div class="chart-container card">
+                        <h3>Sales by Location (Today)</h3>
+                        <canvas id="locationSalesChart"></canvas>
+                    </div>
+                    <div class="chart-container card">
+                        <h3>Expense Breakdown (Today)</h3>
+                        <canvas id="expensePieChart"></canvas>
+                    </div>
+                    <div class="chart-container card">
+                        <h3>Milk Usage (Today)</h3>
+                        <canvas id="milkUsageChart"></canvas>
+                    </div>
+                    <div class="chart-container card">
+                        <h3>Sales Trend (Last 30 Days)</h3>
+                        <canvas id="salesTrendChart"></canvas>
+                    </div>
+                </div>
             </div>
 
                 <div class="tab-content" id="dailyData">

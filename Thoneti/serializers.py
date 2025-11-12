@@ -286,9 +286,11 @@ class MilkReceivedSerializer(serializers.ModelSerializer):
 class DailyTotalSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source='seller.name', read_only=True)
 
+    location_name = serializers.CharField(source='seller.location.location_name', read_only=True)
+
     class Meta:
         model = DailyTotal
-        fields = ['total_id', 'seller', 'seller_name', 'date', 'total_received',
+        fields = ['total_id', 'seller', 'seller_name', 'date', 'total_received', 'location_name',
                   'total_sold', 'revenue', 'created_at']
         read_only_fields = ['total_id', 'created_at']
 

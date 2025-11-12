@@ -40,6 +40,7 @@ urlpatterns = [
     path('api/seller/borrow-lend-history/', views.get_borrow_lend_history, name='borrow-lend-history'),
     path('api/manager/datewise-data/', views.get_datewise_data, name='get-datewise-data'),
     path('api/manager/daily-data/', views.get_daily_data, name='get-daily-data'),
+    path('api/manager/sales-trend/', views.get_sales_trend, name='get-sales-trend'),
     path('api/admin/managers/add/', views.add_manager, name='add-manager'),
     path('api/admin/managers/', views.list_managers, name='list-managers'),
     path('api/admin/managers/<str:manager_id>/delete/', views.delete_manager, name='delete-manager'),
