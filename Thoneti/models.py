@@ -14,6 +14,10 @@ class UserManager(BaseUserManager):
         if not created:
             raise ValueError(f'A user with username "{username}" already exists.')
         user.set_password(password)
+        if role == 'admin':
+            user.is_staff = True
+            user.is_admin = True
+            user.is_superuser = True
         user.save(using=self._db)
         return user
 
@@ -24,6 +28,7 @@ class UserManager(BaseUserManager):
         user.is_staff = True
         user.save(using=self._db)
         return user
+
 
 
 class User(AbstractBaseUser, PermissionsMixin):

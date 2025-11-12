@@ -16,16 +16,19 @@ async function apiFetch(url, options = {}) {
     const headers = options.headers || {};
     headers["Content-Type"] = "application/json";
     headers["X-CSRFToken"] = getCSRFToken();
+
     options.headers = headers;
+    options.credentials = "include"; // ✅ Allow Django session cookies
+
     const res = await fetch(url, options);
     if (!res.ok) {
         const err = await res.text();
         console.error("API error:", err);
-        alert("Error: " + err);
         throw new Error(err);
     }
     return res.json();
 }
+
 
 function logout() {
     fetch("/logout/", { method: "POST" }).then(() => {
@@ -91,8 +94,10 @@ async function registerManager(event) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
             },
+            credentials: 'include',
             body: JSON.stringify(data)
         });
+
 
         const result = await response.json();
 

@@ -13,6 +13,9 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import permission_classes
+
 
 from .models import (
     User, Manager, Employee, Seller, Location, DailyOperations,
@@ -668,9 +671,12 @@ def get_datewise_data(request):
 
 
 @api_view(['POST'])
-@transaction.atomic
+@permission_classes([IsAuthenticated])
 def add_manager(request):
     """Admin creates new manager."""
+    if not hasattr(request.user, "admin_profile"):
+        return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+
     serializer = ManagerCreateSerializer(data=request.data)
     if serializer.is_valid():
         manager = serializer.save()
@@ -679,11 +685,14 @@ def add_manager(request):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def list_managers(request):
-    """List all managers."""
+    """List all managers (Admin only)."""
+    if not hasattr(request.user, "admin_profile"):
+        return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+
     managers = Manager.objects.filter(user__is_active=True)
     return Response(ManagerSerializer(managers, many=True).data, status=status.HTTP_200_OK)
-
 
 def _parse_date(input_date):
     """Convert string to date object safely."""
