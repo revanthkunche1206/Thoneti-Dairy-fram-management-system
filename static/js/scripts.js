@@ -974,6 +974,26 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const data = await apiFetch(`${BASE_URL}/manager/datewise-data/?date=${selectedDate}`);
 
+      let totalMilk = 0;
+      if (data.milk_distribution && data.milk_distribution.length > 0) {
+          totalMilk = data.milk_distribution.reduce((acc, dist) => acc + parseFloat(dist.total_milk), 0);
+      }
+      document.getElementById("dashTodayMilk").textContent = totalMilk.toFixed(2);
+
+      let totalExpenses = 0;
+
+      if (data.feed_records && data.feed_records.length > 0) {
+          totalExpenses += data.feed_records.reduce((acc, feed) => acc + parseFloat(feed.cost), 0);
+      }
+
+      if (data.expense_records && data.expense_records.length > 0) {
+          totalExpenses += data.expense_records.reduce((acc, exp) => acc + parseFloat(exp.amount), 0);
+      }
+      if (data.medicine_records && data.medicine_records.length > 0) {
+          totalExpenses += data.medicine_records.reduce((acc, med) => acc + parseFloat(med.cost), 0);
+      }
+      document.getElementById("dashTodayExpenses").textContent = totalExpenses.toFixed(2);
+      
       populateTable('feedRecordsTable', data.feed_records, ['feed_type', 'quantity', 'cost'], ['Feed Type', 'Quantity (kg)', 'Cost (₹)']);
       populateTable('expensesTable', data.expense_records, ['category', 'amount'], ['Category', 'Amount (₹)']);
       populateTable('medicineTable', data.medicine_records, ['medicine_name', 'cost'], ['Medicine Name', 'Cost (₹)']);
@@ -1045,8 +1065,7 @@ document.addEventListener("DOMContentLoaded", () => {
           loadDatewiseData(selectedDate);
         }
       });
-      loadManagerDashboardStats();
-      // Initial load
+      loadManagerCardStats();
       const today = getCurrentDate();
       loadDailyDataForDate(today);
       loadDatewiseData(today);
@@ -1057,7 +1076,6 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const data = await apiFetch(`${BASE_URL}/manager/daily-data/?date=${selectedDate}`);
 
-      // Helper to reset form
       const resetForm = (form) => {
           if (form) {
             form.reset();
@@ -1066,7 +1084,6 @@ document.addEventListener("DOMContentLoaded", () => {
           }
       };
       
-      // Helper to populate form
       const populateForm = (form, record, idField) => {
           if (form && record) {
               form.querySelector(`input[type="hidden"][name="recordId"]`).value = record[idField];
@@ -1090,7 +1107,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const dailyExpenseForm = document.getElementById("dailyExpenseForm");
       if (data.expense_records && data.expense_records.length > 0) {
-          // Assuming the first non-misc/medicine expense is the one to edit
           const dailyExpense = data.expense_records.find(r => r.category !== 'Miscellaneous' && r.category !== 'Medicine');
           populateForm(dailyExpenseForm, dailyExpense, 'expense_id');
       } else {
@@ -1129,22 +1145,17 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-let managerChartInstance = null;
+async function loadManagerCardStats() {
+    try {
+        const [employees, locations] = await Promise.all([
+            apiFetch(`${BASE_URL}/manager/employees/`),
+            apiFetch(`${BASE_URL}/manager/locations/`)
+        ]);
+        
+        document.getElementById("dashTotalEmployees").textContent = employees.length;
+        document.getElementById("dashTotalLocations").textContent = locations.length;
 
-async function loadManagerDashboardStats() {
-  try {
-    const data = await apiFetch(`${BASE_URL}/manager/dashboard-stats/`);
-
-    // 1. Populate the stat cards
-    document.getElementById("dashTodayMilk").textContent = parseFloat(data.today_milk).toFixed(2);
-    document.getElementById("dashTodayExpenses").textContent = parseFloat(data.today_expenses).toFixed(2);
-    document.getElementById("dashTotalEmployees").textContent = data.total_employees;
-    document.getElementById("dashTotalLocations").textContent = data.total_locations;
-
-    // 2. Initialize or update the chart
-
-  } catch (error) {
-    console.error("Failed to load manager dashboard stats:", error);
-    showModal('errorModal', 'Could not load dashboard statistics.');
-  }
+    } catch (error) {
+        console.error("Failed to load manager card stats:", error);
+    }
 }
