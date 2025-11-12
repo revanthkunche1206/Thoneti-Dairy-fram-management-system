@@ -265,12 +265,13 @@ document.addEventListener("DOMContentLoaded", () => {
     addEmployeeForm.addEventListener("submit", async e => {
       e.preventDefault();
       const f = new FormData(e.target);
+      const userData = JSON.parse(sessionStorage.getItem("userData") || "{}");
       const data = {
         username: f.get("username"),
         password: f.get("password"),
         name: f.get("name"),
         base_salary: parseFloat(f.get("baseSalary")),
-        manager_id: sessionStorage.getItem("user_id"),
+        manager_id: userData.manager_id,
       };
       await apiFetch(`${BASE_URL}/manager/employees/add/`, { method: "POST", body: JSON.stringify(data) });
       alert("Employee added!");

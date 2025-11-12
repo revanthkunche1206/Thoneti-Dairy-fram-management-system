@@ -97,7 +97,7 @@ class EmployeeCreateSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
     name = serializers.CharField()
     base_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
-    manager_id = serializers.UUIDField()
+    manager_id = serializers.CharField()
 
     def create(self, validated_data):
         user = User.objects.create_user(
