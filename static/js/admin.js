@@ -157,7 +157,8 @@ function populateManagersTable(managers) {
 
 function updateStats(managers) {
     const totalManagers = managers.length;
-    const activeManagers = managers.filter(m => m.user.is_active).length;
+    // FIX: The API already returns only active managers, so the count is just the list length.
+    const activeManagers = managers.length;
     const today = new Date().toISOString().split('T')[0];
     const todayManagers = managers.filter(m => m.created_at.startsWith(today)).length;
 
