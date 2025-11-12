@@ -417,3 +417,36 @@ body {
 .modal-content .btn-primary {
     width: 100%;
 }
+
+
+.btn-secondary {
+    background: #f1f3f5;
+    color: #555;
+}
+.btn-secondary:hover {
+    background: #e9ecef;
+}
+
+/* --- ADD THESE NEW STYLES --- */
+.btn-danger {
+    background: #dc3545;
+    color: var(--white);
+}
+.btn-danger:hover {
+    background: #c82333;
+    opacity: 0.9;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+.modal-actions .btn-secondary,
+.modal-actions .btn-danger {
+    width: auto;
+}
+.modal-content.warning .modal-icon {
+    background: #ffc107;
+}

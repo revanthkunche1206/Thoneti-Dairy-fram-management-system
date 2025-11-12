@@ -10,6 +10,7 @@ class UserManager(BaseUserManager):
     def create_user(self, username, password=None, role='employee'):
         if not username:
             raise ValueError('Users must have a username')
+        user = self.model(username=username, role=role)
         user, created = self.model.objects.get_or_create(username=username, defaults={'role': role})
         if not created:
             raise ValueError(f'A user with username "{username}" already exists.')

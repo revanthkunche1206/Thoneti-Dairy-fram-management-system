@@ -727,6 +727,25 @@ def list_managers(request):
     managers = Manager.objects.filter(user__is_active=True)
     return Response(ManagerSerializer(managers, many=True).data, status=status.HTTP_200_OK)
 
+
+@api_view(['DELETE'])
+@transaction.atomic
+def delete_manager(request, manager_id):
+    """
+    Admin deletes a manager.
+    The on_delete=models.CASCADE on the Manager's user field
+    will automatically delete the associated User account.
+    """
+    try:
+        manager = get_object_or_404(Manager, manager_id=manager_id)
+        
+        manager.delete()
+        
+        return Response({'message': 'Manager deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+    except Exception as e:
+        return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 def _parse_date(input_date):
     """Convert string to date object safely."""
     if not input_date:

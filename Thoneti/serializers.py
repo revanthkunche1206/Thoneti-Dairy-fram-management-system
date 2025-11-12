@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
+from django.db import IntegrityError
+
 from .models import (
     User, Admin, Manager, Employee, Seller, Location,
     DailyOperations, FeedRecord, ExpenseRecord, MedicineRecord,

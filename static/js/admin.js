@@ -146,7 +146,12 @@ function populateManagersTable(managers) {
             <td><span class="status status-active">Active</span></td>
             <td>
                 <button class="action-btn btn-edit" title="Edit Manager">✏️</button>
-                <button class="action-btn btn-delete" title="Delete Manager">🗑️</button>
+                <button class="action-btn btn-delete" 
+                        title="Delete Manager"
+                        data-id="${manager.manager_id}"
+                        data-name="${manager.name}">
+                    🗑️
+                </button>
             </td>
         `;
         tbody.appendChild(row);
@@ -157,7 +162,6 @@ function populateManagersTable(managers) {
 
 function updateStats(managers) {
     const totalManagers = managers.length;
-    // FIX: The API already returns only active managers, so the count is just the list length.
     const activeManagers = managers.length;
     const today = new Date().toISOString().split('T')[0];
     const todayManagers = managers.filter(m => m.created_at.startsWith(today)).length;
@@ -192,7 +196,23 @@ document.addEventListener('DOMContentLoaded', () => {
         registerForm.addEventListener('submit', registerManager);
     }
 
-    // Close modals when clicking outside
+    const tableBody = document.getElementById('managersTableBody');
+    if (tableBody) {
+        tableBody.addEventListener('click', (e) => {
+            const deleteButton = e.target.closest('.btn-delete');
+            if (deleteButton) {
+                const managerId = deleteButton.dataset.id;
+                const managerName = deleteButton.dataset.name;
+                showDeleteConfirmation(managerId, managerName);
+            }
+        });
+    }
+
+    const confirmButton = document.getElementById('confirmDeleteButton');
+    if (confirmButton) {
+        confirmButton.addEventListener('click', handleDeleteManager);
+    }
+
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
@@ -201,3 +221,41 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+
+
+function showDeleteConfirmation(managerId, managerName) {
+    const messageElement = document.getElementById('confirmDeleteMessage');
+    messageElement.textContent = `Do you really want to delete manager "${managerName}" (ID: ${managerId})? This action cannot be undone.`;
+
+    const confirmButton = document.getElementById('confirmDeleteButton');
+    confirmButton.dataset.id = managerId;
+
+    showModal('confirmDeleteModal');
+}
+
+async function handleDeleteManager() {
+    const confirmButton = document.getElementById('confirmDeleteButton');
+    const managerId = confirmButton.dataset.id;
+
+    if (!managerId) return;
+
+    try {
+        await apiFetch(`${BASE_URL}/admin/managers/${managerId}/delete/`, {
+            method: 'DELETE',
+        });
+
+        closeModal();
+
+        showModal('successModal', `Manager (ID: ${managerId}) has been successfully deleted.`);
+
+        loadManagers();
+
+    } catch (error) {
+        console.error('Delete error:', error);
+        closeModal();
+        showModal('errorModal', `Failed to delete manager: ${error.message}`);
+    } finally {
+        delete confirmButton.dataset.id;
+    }
+}

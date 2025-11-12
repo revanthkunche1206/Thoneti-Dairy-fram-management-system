@@ -189,6 +189,22 @@
         </div>
     </div>
 
+    <div id="confirmDeleteModal" class="modal">
+            <div class="modal-content warning">
+                <div class="modal-icon">!</div>
+                <h3>Are you sure?</h3>
+                <p id="confirmDeleteMessage">Do you really want to delete this manager? This action cannot be undone.</p>
+                <div class="modal-actions">
+                    <button onclick="closeModal()" class="btn-secondary">
+                        <span>Cancel</span>
+                    </button>
+                    <button id="confirmDeleteButton" class="btn-danger">
+                        <span>Delete</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
     <script src="{% static 'js/admin.js' %}"></script>
 </body>
 </html>
