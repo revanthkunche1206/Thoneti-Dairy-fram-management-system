@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from django.utils import timezone
 from django.views.generic import TemplateView
@@ -753,3 +753,88 @@ def _parse_date(input_date):
     if isinstance(input_date, date):
         return input_date
     return datetime.strptime(input_date, '%Y-%m-%d').date()
+
+from django.db.models import Sum
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def manager_dashboard_stats(request):
+    """
+    Provides aggregated data for the manager dashboard,
+    covering the last 7 days.
+    """
+    manager = get_object_or_404(Manager, user=request.user)
+    today = date.today()
+    seven_days_ago = today - timedelta(days=6)
+
+    # 1. Get daily milk and expense data for the last 7 days
+    operations = DailyOperations.objects.filter(
+        manager=manager,
+        date__gte=seven_days_ago,
+        date__lte=today
+    ).order_by('date')
+
+    # 2. Get related data
+    milk_dist = MilkDistribution.objects.filter(
+        record__in=operations
+    ).values('date').annotate(
+        total_milk=Sum('total_milk'),
+        leftover_sales=Sum('leftover_sales')
+    )
+
+    expenses = ExpenseRecord.objects.filter(
+        record__in=operations
+    ).values('date').annotate(
+        total_expense=Sum('amount')
+    )
+
+    # 3. Format data for Chart.js
+    labels = [(seven_days_ago + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
+    milk_data = {item['date'].strftime('%Y-%m-%d'): item['total_milk'] for item in milk_dist}
+    sales_data = {item['date'].strftime('%Y-%m-%d'): item['leftover_sales'] for item in milk_dist}
+    expense_data = {item['date'].strftime('%Y-%m-%d'): item['total_expense'] for item in expenses}
+
+    chart_data = {
+        'labels': labels,
+        'datasets': [
+            {
+                'label': 'Total Milk (L)',
+                'data': [float(milk_data.get(label, 0)) for label in labels],
+                'borderColor': '#667eea',
+                'backgroundColor': 'rgba(102, 126, 234, 0.1)',
+                'fill': True,
+                'tension': 0.1
+            },
+            {
+                'label': 'Leftover Sales (₹)',
+                'data': [float(sales_data.get(label, 0)) for label in labels],
+                'borderColor': '#27ae60',
+                'backgroundColor': 'rgba(39, 174, 96, 0.1)',
+                'fill': True,
+                'tension': 0.1
+            },
+            {
+                'label': 'Total Expenses (₹)',
+                'data': [float(expense_data.get(label, 0)) for label in labels],
+                'borderColor': '#e74c3c',
+                'backgroundColor': 'rgba(231, 76, 60, 0.1)',
+                'fill': True,
+                'tension': 0.1
+            }
+        ]
+    }
+
+    # 4. Get other stats
+    total_employees = Employee.objects.filter(manager=manager, is_active=True).count()
+    total_locations = Location.objects.count()
+
+    today_milk = milk_dist.filter(date=today).aggregate(total=Sum('total_milk'))['total'] or 0
+    today_expenses = expenses.filter(date=today).aggregate(total=Sum('total_expense'))['total'] or 0
+
+    return Response({
+        'chart_data': chart_data,
+        'total_employees': total_employees,
+        'total_locations': total_locations,
+        'today_milk': today_milk,
+        'today_expenses': today_expenses
+    }, status=status.HTTP_200_OK)
