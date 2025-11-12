@@ -1,0 +1,336 @@
+from datetime import datetime, date
+from decimal import Decimal
+from django.db import transaction
+from django.db.models import Sum, Count
+from django.core.exceptions import ValidationError
+from .models import (
+    DailyOperations, Salary, Attendance, MilkReceived, 
+    MilkDistribution, Deduction, Notification, Seller, 
+    BorrowLendRecord, Location
+)
+from calendar import monthrange
+
+
+def get_or_create_daily_operations(manager, operation_date=None):
+    """
+    Ensures each manager has only one DailyOperations record per day.
+    """
+    if operation_date is None:
+        operation_date = date.today()
+
+    daily_ops, created = DailyOperations.objects.get_or_create(
+        manager=manager,
+        date=operation_date,
+        defaults={'date': operation_date}
+    )
+    return daily_ops
+
+
+@transaction.atomic
+def mark_attendance_and_update(employee, attendance_date, status: str):
+    """
+    Marks attendance and recalculates salary when necessary.
+    Automatically updates Salary model for that month.
+    """
+    if isinstance(attendance_date, str):
+        attendance_date = datetime.strptime(attendance_date, "%Y-%m-%d").date()
+
+    validate_attendance_date(attendance_date)
+
+    attendance, created = Attendance.objects.get_or_create(
+        employee=employee,
+        date=attendance_date,
+        defaults={'status': status}
+    )
+
+    if not created and attendance.status == status:
+        return attendance, {'message': 'No change — same status.'}
+
+    attendance.status = status
+    attendance.save()
+
+    if status == 'present':
+        salary = calculate_and_update_salary(employee, attendance_date)
+        message = f"Marked present for {attendance_date}. Salary updated."
+    else:
+        salary = calculate_and_update_salary(employee, attendance_date)
+        message = f"Marked {status} for {attendance_date}."
+
+    return attendance, {'message': message, 'salary_updated': True}
+
+
+def calculate_and_update_salary(employee, attendance_date):
+    """
+    Core salary calculation logic.
+    Automatically updates Salary records each time attendance changes.
+    """
+    month = attendance_date.strftime('%Y-%m')
+
+    salary, _ = Salary.objects.get_or_create(
+        employee=employee,
+        month=month,
+        defaults={
+            'base_salary': employee.base_salary,
+            'total_deductions': Decimal('0.00'),
+            'final_salary': Decimal('0.00'),
+            'days_worked': 0
+        }
+    )
+
+    days_worked = Attendance.objects.filter(
+        employee=employee,
+        date__year=attendance_date.year,
+        date__month=attendance_date.month,
+        status='present'
+    ).count()
+
+    salary_balance = employee.base_salary * days_worked
+    total_deductions = Deduction.objects.filter(salary=salary).aggregate(
+        total=Sum('amount')
+    )['total'] or Decimal('0.00')
+
+    final_salary = salary_balance - total_deductions
+
+    salary.days_worked = days_worked
+    salary.total_deductions = total_deductions
+    salary.final_salary = final_salary
+    salary.save()
+
+    return salary
+
+
+def calculate_total_milk_distributed(daily_operations):
+    """
+    Calculates total milk distributed for the day by summing up
+    all MilkReceived records.
+    """
+    return MilkReceived.objects.filter(
+        date=daily_operations.date
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+
+def update_milk_distribution_totals(daily_operations):
+    """
+    Updates total milk in MilkDistribution when new milk is received.
+    """
+    total_milk = calculate_total_milk_distributed(daily_operations)
+
+    milk_dist, created = MilkDistribution.objects.get_or_create(
+        record=daily_operations,
+        date=daily_operations.date,
+        defaults={
+            'total_milk': total_milk,
+            'leftover_milk': Decimal('0.00'),
+            'leftover_sales': Decimal('0.00')
+        }
+    )
+
+    if not created:
+        milk_dist.total_milk = total_milk
+        milk_dist.save()
+
+    return milk_dist
+
+
+def get_employee_dashboard_data(employee):
+    """
+    Returns structured data for Employee Dashboard.
+    Includes attendance %, salary, deductions, and pay summary.
+    """
+    today = date.today()
+    current_month = today.strftime('%Y-%m')
+    total_days = monthrange(today.year, today.month)[1]
+
+    days_worked = Attendance.objects.filter(
+        employee=employee,
+        date__year=today.year,
+        date__month=today.month,
+        status='present'
+    ).count()
+
+    salary, _ = Salary.objects.get_or_create(
+        employee=employee,
+        month=current_month,
+        defaults={
+            'base_salary': employee.base_salary,
+            'total_deductions': Decimal('0.00'),
+            'final_salary': Decimal('0.00'),
+            'days_worked': 0
+        }
+    )
+
+    salary_balance = employee.base_salary * days_worked
+    deductions = Deduction.objects.filter(salary=salary)
+    total_deductions = deductions.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    final_salary = salary_balance - total_deductions
+
+    attendance_percentage = (days_worked / total_days * 100) if total_days > 0 else 0
+
+    return {
+        'employee_id': employee.employee_id,
+        'name': employee.name,
+        'base_salary': employee.base_salary,
+        'days_worked': days_worked,
+        'total_days': total_days,
+        'attendance_percentage': round(attendance_percentage, 2),
+        'salary_balance': salary_balance,
+        'total_deductions': total_deductions,
+        'final_salary': final_salary,
+        'deductions': deductions
+    }
+
+
+def create_notification(user, message):
+    """
+    Creates a notification record for a user.
+    """
+    return Notification.objects.create(user=user, message=message)
+
+
+def notify_all_sellers_about_request(milk_request):
+    """
+    Notifies all sellers when a new milk request is created.
+    """
+    other_sellers = Seller.objects.filter(is_active=True).exclude(
+        seller_id=milk_request.from_seller.seller_id
+    )
+
+    message = (
+        f"New milk request from {milk_request.from_seller.name} "
+        f"({milk_request.from_seller.location.location_name}). "
+        f"Quantity: {milk_request.quantity}L"
+    )
+
+    for seller in other_sellers:
+        create_notification(seller.user, message)
+
+
+def create_borrow_lend_record(milk_request, accepting_seller):
+    """
+    Creates BorrowLendRecord when a milk request is accepted.
+    """
+    record = BorrowLendRecord.objects.create(
+        borrower_seller=milk_request.from_seller,
+        lender_seller=accepting_seller,
+        quantity=milk_request.quantity,
+        borrow_date=date.today(),
+        settled=False,
+        request=milk_request
+    )
+
+    message = (
+        f"Your milk request for {milk_request.quantity}L has been accepted by "
+        f"{accepting_seller.name} ({accepting_seller.location.location_name})."
+    )
+    create_notification(milk_request.from_seller.user, message)
+
+    return record
+
+
+def validate_attendance_date(attendance_date):
+    """
+    Ensures attendance cannot be marked for a future date.
+    """
+    if attendance_date > date.today():
+        raise ValidationError("Cannot mark attendance for future dates.")
+    return True
+
+
+def get_monthly_attendance_summary(employee, year, month):
+    """
+    Provides a detailed monthly attendance summary.
+    """
+    attendances = Attendance.objects.filter(
+        employee=employee,
+        date__year=year,
+        date__month=month
+    )
+    present_count = attendances.filter(status='present').count()
+    absent_count = attendances.filter(status='absent').count()
+    total_days = monthrange(year, month)[1]
+
+    return {
+        'total_days': total_days,
+        'present': present_count,
+        'absent': absent_count,
+        'unmarked': total_days - (present_count + absent_count)
+    }
+
+
+def get_seller_daily_summary(seller, summary_date=None):
+    """
+    Returns a seller’s daily summary with milk and revenue.
+    """
+    if summary_date is None:
+        summary_date = date.today()
+
+    milk_received = MilkReceived.objects.filter(
+        seller=seller,
+        date=summary_date
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+    farm_milk = MilkReceived.objects.filter(
+        seller=seller,
+        date=summary_date,
+        source='From Farm'
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+    inter_seller_milk = MilkReceived.objects.filter(
+        seller=seller,
+        date=summary_date,
+        source='Inter Seller'
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+    daily_total = seller.daily_totals.filter(date=summary_date).first()
+
+    return {
+        'date': summary_date,
+        'milk_received': milk_received,
+        'farm_milk': farm_milk,
+        'inter_seller_milk': inter_seller_milk,
+        'revenue': daily_total.revenue if daily_total else Decimal('0.00'),
+        'total_received': daily_total.total_received if daily_total else Decimal('0.00'),
+        'total_sold': daily_total.total_sold if daily_total else Decimal('0.00')
+    }
+
+
+
+def get_location_statistics():
+    """
+    Returns statistics for all locations with seller and milk data.
+    Ensures location_id and address are included for dropdown population.
+    """
+    stats = []
+    today = date.today()
+
+    for location in Location.objects.all():
+        sellers = Seller.objects.filter(location=location, is_active=True)
+
+        total_milk_today = MilkReceived.objects.filter(
+            seller__location=location,
+            date=today
+        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+        farm_milk_today = MilkReceived.objects.filter(
+            seller__location=location,
+            date=today,
+            source='From Farm'
+        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+        inter_seller_milk_today = MilkReceived.objects.filter(
+            seller__location=location,
+            date=today,
+            source='Inter Seller'
+        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+        stats.append({
+            'location_id': str(location.location_id),
+            'location_name': location.location_name,
+            'address': location.address,
+            'seller_count': sellers.count(),
+            'milk_received_today': total_milk_today,
+            'farm_milk_today': farm_milk_today,
+            'inter_seller_milk_today': inter_seller_milk_today
+        })
+
+    return stats

@@ -1,0 +1,448 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dairy Farm Management System</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <!-- Manager Dashboard -->
+    <div class="page active" id="managerDashboard">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <div>
+                    <h1>Manager Dashboard</h1>
+                    <p style="opacity: 0.9; margin-top: 5px;">Welcome back, <span id="managerName">Manager</span></p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 14px;">Select Date</label>
+                        <input type="date" id="globalDateSelector" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <button class="btn-logout" onclick="logout()">Logout</button>
+                </div>
+            </div>
+            <div class="dashboard-content">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab(event, 'dailyData')">Daily Data</button>
+                    <button class="tab" onclick="switchTab(event, 'occasionalExpenses')">Occasional Expenses</button>
+                    <button class="tab" onclick="switchTab(event, 'datewiseData')">Datewise Data</button>
+                    <button class="tab" onclick="switchTab(event, 'employeeMgmt')">Employee Management</button>
+                    <button class="tab" onclick="switchTab(event, 'locationMgmt')">Location Management</button>
+                </div>
+
+                <!-- Daily Data Entry Tab -->
+                <div class="tab-content active" id="dailyData">
+                    <div class="card">
+                        <h3><span class="card-icon">🌾</span>Daily Feed Entry</h3>
+                        <form id="feedEntryForm">
+                            <input type="hidden" name="recordId" data-field="recordId">
+                            <input type="hidden" name="date" data-field="date">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Feed Type / Description</label>
+                                    <input type="text" name="feedType" placeholder="e.g., Hay, Grain Mix" required data-field="feedType">
+                                </div>
+                                <div class="form-group">
+                                    <label>Quantity (kg)</label>
+                                    <input type="number" name="quantity" placeholder="Enter quantity" required data-field="quantity">
+                                </div>
+                                <div class="form-group">
+                                    <label>Cost (₹)</label>
+                                    <input type="number" name="cost" placeholder="Enter cost" required data-field="cost">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Save Feed Entry</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">💰</span>Daily Expenses Entry</h3>
+                        <form id="dailyExpenseForm">
+                            <input type="hidden" name="recordId" data-field="recordId">
+                            <input type="hidden" name="date" data-field="date">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Expense Category / Description</label>
+                                    <input type="text" name="category" placeholder="e.g., Daily Farm Supplies" required data-field="category">
+                                </div>
+                                <div class="form-group">
+                                    <label>Amount (₹)</label>
+                                    <input type="number" name="amount" placeholder="Enter amount" required data-field="amount">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Save Expense</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">🥛</span>Milk Distribution (Location-wise)</h3>
+                        <form id="milkDistributionForm">
+                            <input type="hidden" name="date" data-field="date">
+                            <div id="milkDistributionEntries">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Select Location</label>
+                                        <select name="locationId" required data-field="locationId">
+                                            <option value="">Choose location...</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Quantity Sent (Liters)</label>
+                                        <input type="number" name="quantity" placeholder="Enter quantity" required data-field="quantity">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Record Milk Distribution</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">📦</span>Leftover Milk Management</h3>
+                        <form id="leftoverMilkForm">
+                            <input type="hidden" name="recordId" data-field="recordId">
+                            <input type="hidden" name="date" data-field="date">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Leftover Milk Returned (Liters)</label>
+                                    <input type="number" name="leftoverMilk" placeholder="Enter leftover quantity" required data-field="leftoverMilk">
+                                </div>
+                                <div class="form-group">
+                                    <label>Leftover Milk Sales Revenue (₹)</label>
+                                    <input type="number" name="leftoverSales" placeholder="Enter sales amount" required data-field="leftoverSales">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Update Leftover Data</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Occasional Expenses Tab -->
+                <div class="tab-content" id="occasionalExpenses">
+                    <div class="card">
+                        <h3><span class="card-icon">🔧</span>Miscellaneous Expenses</h3>
+                        <form id="miscExpenseForm">
+                            <input type="hidden" name="recordId" data-field="recordId">
+                            <input type="hidden" name="date" data-field="date">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Expense Description</label>
+                                    <input type="text" name="category" placeholder="e.g., Equipment Repair, Maintenance" required data-field="category">
+                                </div>
+                                <div class="form-group">
+                                    <label>Amount (₹)</label>
+                                    <input type="number" name="amount" placeholder="Enter amount" required data-field="amount">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Save Expense</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">💊</span>Medicine Purchases</h3>
+                        <form id="medicineForm">
+                            <input type="hidden" name="recordId" data-field="recordId">
+                            <input type="hidden" name="date" data-field="date">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Medicine Name</label>
+                                    <input type="text" name="medicineName" placeholder="Enter medicine name" required data-field="medicineName">
+                                </div>
+                                <div class="form-group">
+                                    <label>Cost (₹)</label>
+                                    <input type="number" name="cost" placeholder="Enter cost" required data-field="cost">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Save Medicine Purchase</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Employee Management Tab -->
+                <div class="tab-content" id="employeeMgmt">
+                    <div class="card">
+                        <h3><span class="card-icon">👥</span>Add New Employee</h3>
+                        <form id="addEmployeeForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Employee Name</label>
+                                    <input type="text" name="name" placeholder="Enter employee name" required data-field="name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Username</label>
+                                    <input type="text" name="username" placeholder="Create username" required data-field="username">
+                                </div>
+                                <div class="form-group">
+                                    <label>Password</label>
+                                    <input type="password" name="password" placeholder="Create password" required data-field="password">
+                                </div>
+                                <div class="form-group">
+                                    <label>Base Daily Salary (₹)</label>
+                                    <input type="number" name="baseSalary" placeholder="Enter daily salary" required data-field="baseSalary">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Add Employee</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">✓</span>Mark Attendance</h3>
+                        <div class="form-group" style="max-width: 300px;">
+                            <label>Select Date</label>
+                            <input type="date" id="attendanceDate" data-field="date">
+                        </div>
+                        <div class="attendance-grid" id="attendanceGrid">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">💸</span>Update Employee Deductions</h3>
+                        <form id="deductionForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Select Employee</label>
+                                    <select name="employeeId" required data-field="employeeId">
+                                        <option value="">Choose employee...</option>
+                                        <!-- Dynamically populated -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Reason for Deduction</label>
+                                    <textarea name="reason" placeholder="Enter reason for deduction" required data-field="reason"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Deduction Amount (₹)</label>
+                                    <input type="number" name="amount" placeholder="Enter amount" step="0.01" required data-field="amount">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Apply Deduction</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">📋</span>All Employees</h3>
+                        <div class="table-container">
+                            <table id="employeeTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Username</th>
+                                        <th>Base Salary</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location Management Tab -->
+                <div class="tab-content" id="locationMgmt">
+                    <div class="card">
+                        <h3><span class="card-icon">📍</span>Add New Location</h3>
+                        <form id="addLocationForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Location Name</label>
+                                    <input type="text" name="locationName" placeholder="Enter location name" required data-field="locationName">
+                                </div>
+                                <div class="form-group">
+                                    <label>Location Address</label>
+                                    <input type="text" name="address" placeholder="Enter address" required data-field="address">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Add Location</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">👤</span>Add New Seller</h3>
+                        <form id="addSellerForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Select Location</label>
+                                    <select name="locationId" required data-field="locationId">
+                                        <option value="">Choose location...</option>
+                                        <!-- Dynamically populated -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Seller Name</label>
+                                    <input type="text" name="sellerName" placeholder="Enter seller name" required data-field="name">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Seller Username</label>
+                                    <input type="text" name="sellerUsername" placeholder="Create username" required data-field="username">
+                                </div>
+                                <div class="form-group">
+                                    <label>Seller Password</label>
+                                    <input type="password" name="sellerPassword" placeholder="Create password" required data-field="password">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Add Seller</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">🗺️</span>All Locations</h3>
+                        <p style="color: #666; margin-bottom: 20px;">Total Locations: <strong id="locationCount">0</strong></p>
+                        <div class="location-grid" id="locationGrid">
+                            <!-- Dynamically populated -->
+                        </div>
+                        <div class="stats-grid" style="margin-top: 20px;">
+                            <div class="stat-card">
+                                <h4>Total Milk Today</h4>
+                                <div class="value"><span id="totalMilkToday">0</span> L</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Datewise Data Tab -->
+                <div class="tab-content" id="datewiseData">
+                    <div class="card">
+                        <h3><span class="card-icon">📅</span>Data for Selected Date</h3>
+                        <p style="color: #666;">Use the date selector at the top to view data for different dates.</p>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">🌾</span>Feed Records</h3>
+                        <div class="table-container">
+                            <table id="feedRecordsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Feed Type</th>
+                                        <th>Quantity (kg)</th>
+                                        <th>Cost (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">💰</span>Expenses</h3>
+                        <div class="table-container">
+                            <table id="expensesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Amount (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">💊</span>Medicine Purchases</h3>
+                        <div class="table-container">
+                            <table id="medicineTable">
+                                <thead>
+                                    <tr>
+                                        <th>Medicine Name</th>
+                                        <th>Cost (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">🥛</span>Milk Distribution</h3>
+                        <div class="table-container">
+                            <table id="milkDistributionTable">
+                                <thead>
+                                    <tr>
+                                        <th>Total Milk (L)</th>
+                                        <th>Leftover Milk (L)</th>
+                                        <th>Leftover Sales (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">📦</span>Milk Received by Sellers</h3>
+                        <div class="table-container">
+                            <table id="milkReceivedTable">
+                                <thead>
+                                    <tr>
+                                        <th>Seller Name</th>
+                                        <th>Quantity (L)</th>
+                                        <th>Source</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">📊</span>Daily Totals</h3>
+                        <div class="table-container">
+                            <table id="dailyTotalsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Seller Name</th>
+                                        <th>Total Received (₹)</th>
+                                        <th>Total Sold (₹)</th>
+                                        <th>Revenue (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">✓</span>Attendance</h3>
+                        <div class="table-container">
+                            <table id="attendanceTable">
+                                <thead>
+                                    <tr>
+                                        <th>Employee Name</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/scripts.js' %}"></script>
+</body>
+</html>

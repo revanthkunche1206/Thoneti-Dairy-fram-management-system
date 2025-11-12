@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dairy Farm Management System</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <!-- Seller Dashboard -->
+    <div class="page active" id="sellerDashboard">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <div>
+                    <h1>Seller Dashboard</h1>
+                    <p style="opacity: 0.9; margin-top: 5px;">Welcome, <span id="sellerName">Seller</span></p>
+                    <p style="opacity: 0.9; font-size: 14px;">Location: <span id="sellerLocation">Location Name</span></p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="dateSelector" style="font-size: 14px; color: #fff;">Select Date:</label>
+                    <input type="date" id="dateSelector" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                    <button class="btn-logout" onclick="logout()">Logout</button>
+                </div>
+            </div>
+            <div class="dashboard-content">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab(event, 'dailySales')">Daily Sales</button>
+                    <button class="tab" onclick="switchTab(event, 'milkRequests')">Milk Requests</button>
+                    <button class="tab" onclick="switchTab(event, 'myRequests')">My Requests</button>
+                </div>
+
+                <!-- Daily Sales Tab -->
+                <div class="tab-content active" id="dailySales">
+                    <div class="card">
+                        <h3><span class="card-icon">🥛</span>Milk Received from Farm</h3>
+                        <form id="milkReceivedForm">
+                            <input type="hidden" name="sellerId" data-field="sellerId">
+                            <input type="hidden" name="date" data-field="date">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Quantity Received (Liters)</label>
+                                    <input type="number" name="quantity" placeholder="Enter quantity received" required data-field="quantity">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" name="receiptDate" required data-field="date">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Record Milk Received</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">💰</span>Daily Sales Entry</h3>
+                        <form id="dailySalesForm">
+                            <input type="hidden" name="sellerId" data-field="sellerId">
+                            <input type="hidden" name="date" data-field="date">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Cash Earned (₹)</label>
+                                    <input type="number" name="cashEarned" placeholder="Enter cash amount" required data-field="cashEarned">
+                                </div>
+                                <div class="form-group">
+                                    <label>Online Payment Earned (₹)</label>
+                                    <input type="number" name="onlineEarned" placeholder="Enter online amount" required data-field="onlineEarned">
+                                </div>
+                                <div class="form-group">
+                                    <label>Total Revenue (Auto-calculated)</label>
+                                    <input type="number" name="revenue" readonly style="background: #f0f0f0; font-weight: bold;" data-field="revenue">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Save Daily Sales</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">📊</span>Today's Summary</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h4>Total Milk Received</h4>
+                                <div class="value"><span id="todayMilkReceived">0</span> L</div>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Inter-Seller Milk</h4>
+                                <div class="value"><span id="todayInterSellerMilk">0</span> L</div>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Total Revenue</h4>
+                                <div class="value">₹<span id="todayRevenue">0</span></div>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Cash Sales</h4>
+                                <div class="value">₹<span id="todayCash">0</span></div>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Online Sales</h4>
+                                <div class="value">₹<span id="todayOnline">0</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Milk Requests Tab -->
+                <div class="tab-content" id="milkRequests">
+                    <div class="card">
+                        <h3><span class="card-icon">📤</span>Request Milk from Other Locations</h3>
+                        <form id="milkRequestForm">
+                            <input type="hidden" name="fromSellerId" data-field="fromSellerId">
+                            <input type="hidden" name="status" value="pending" data-field="status">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Quantity Needed (Liters)</label>
+                                    <input type="number" name="quantity" placeholder="Enter quantity needed" required data-field="quantity">
+                                </div>
+                            </div>
+                            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                                📢 This request will be sent to all available locations in the system
+                            </p>
+                            <button type="submit" class="btn-secondary">Send Request</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">📥</span>Incoming Requests from Other Sellers</h3>
+                        <div id="incomingRequests">
+                            <p style="text-align: center; color: #999; padding: 20px;">Loading incoming requests...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Requests Tab -->
+                <div class="tab-content" id="myRequests">
+                    <div class="card">
+                        <h3><span class="card-icon">📋</span>My Milk Requests</h3>
+                        <div id="myRequestsList">
+                            <p style="text-align: center; color: #999; padding: 20px;">Loading my requests...</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="card-icon">🤝</span>Borrow/Lend History</h3>
+                        <div class="table-container">
+                            <table id="borrowLendTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Other Party</th>
+                                        <th>Quantity (L)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; color: #999;">Loading borrow/lend history...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/scripts.js' %}"></script>
+</body>
+</html>

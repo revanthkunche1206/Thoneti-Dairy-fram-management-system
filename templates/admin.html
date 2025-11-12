@@ -1,0 +1,194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Register Manager</title>
+
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <div class="header-content">
+                <h1>🔐 Admin Panel</h1>
+                <p>Dairy Farm Management System</p>
+            </div>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="admin-content">
+            <div class="welcome-card">
+                <h2>Welcome, <span id="adminName">Administrator</span></h2>
+                <p>Use this panel to register new managers for the dairy farm system.</p>
+            </div>
+
+            <div class="registration-section">
+                <div class="section-header">
+                    <div class="icon-box">👤</div>
+                    <div>
+                        <h2>Register New Manager</h2>
+                        <p>Create a new manager account who can manage employees, locations, and daily operations</p>
+                    </div>
+                </div>
+
+                <form id="registerManagerForm" class="registration-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="managerName">
+                                <span class="label-icon">👨‍💼</span>
+                                Manager Full Name
+                            </label>
+                            <input
+                                type="text"
+                                id="managerName"
+                                name="name"
+                                placeholder="Enter full name"
+                                required
+                                data-field="name"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="managerUsername">
+                                <span class="label-icon">🔑</span>
+                                Username
+                            </label>
+                            <input
+                                type="text"
+                                id="managerUsername"
+                                name="username"
+                                placeholder="Create username"
+                                required
+                                data-field="username"
+                            >
+                            <small>This will be used for login</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="managerPassword">
+                                <span class="label-icon">🔒</span>
+                                Password
+                            </label>
+                            <input
+                                type="password"
+                                id="managerPassword"
+                                name="password"
+                                placeholder="Create strong password"
+                                required
+                                minlength="6"
+                                data-field="password"
+                            >
+                            <small>Minimum 6 characters</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">
+                                <span class="label-icon">✓</span>
+                                Confirm Password
+                            </label>
+                            <input
+                                type="password"
+                                id="confirmPassword"
+                                placeholder="Re-enter password"
+                                required
+                                minlength="6"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="reset" class="btn-secondary">
+                            <span>↺</span> Reset Form
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <span>✓</span> Register Manager
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="managers-section">
+                <div class="section-header">
+                    <div class="icon-box">📋</div>
+                    <div>
+                        <h2>Registered Managers</h2>
+                        <p>List of all managers in the system</p>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <div class="stat-item">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total Managers</span>
+                            <span class="stat-value" id="totalManagers">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">✓</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Active Managers</span>
+                            <span class="stat-value" id="activeManagers">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-info">
+                            <span class="stat-label">Registered Today</span>
+                            <span class="stat-value" id="todayManagers">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="managersTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Manager ID</th>
+                                <th>Registered Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="managersTableBody">
+                            <tr class="no-data-row">
+                                <td colspan="6" class="no-data">
+                                    <div class="no-data-message">
+                                        <span class="no-data-icon">📭</span>
+                                        <p>No managers registered yet</p>
+                                        <small>Use the form above to register the first manager</small>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="successModal" class="modal">
+            <div class="modal-content success">
+                <div class="modal-icon">✓</div>
+                <h3>Manager Registered Successfully!</h3>
+                <p id="successMessage"></p>
+                <button onclick="closeModal()" class="btn-primary">OK</button>
+            </div>
+        </div>
+
+        <div id="errorModal" class="modal">
+            <div class="modal-content error">
+                <div class="modal-icon">✗</div>
+                <h3>Registration Failed</h3>
+                <p id="errorMessage"></p>
+                <button onclick="closeModal()" class="btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/admin.js' %}"></script>
+</body>
+</html>
