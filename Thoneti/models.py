@@ -56,17 +56,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Manager(models.Model):
-    # --- CHANGED ---
-    # Changed from UUIDField to CharField for serial IDs
     manager_id = models.CharField(max_length=10, primary_key=True, unique=True, editable=False, blank=True)
-    # --- END CHANGE ---
-    
     name = models.CharField(max_length=255)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='manager_profile')
     created_at = models.DateTimeField(auto_now_add=True)
-
-    # --- ADDED ---
-    # This logic creates serial IDs like "manager001", "manager002"
     def save(self, *args, **kwargs):
         if not self.manager_id:
             last_manager = Manager.objects.order_by('-manager_id').first()
@@ -79,8 +72,6 @@ class Manager(models.Model):
             else:
                 self.manager_id = 'manager001'
         super().save(*args, **kwargs)
-    # --- END ADD ---
-
     def __str__(self):
         return self.name
 
@@ -235,6 +226,20 @@ class MilkDistribution(models.Model):
         db_table = 'milkdistribution'
 
 
+class SystemMilkDistribution(models.Model):
+    date = models.DateField(unique=True)
+    total_milk = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    leftover_milk = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    leftover_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"System Distribution - {self.date}"
+
+    class Meta:
+        db_table = 'systemmilkdistribution'
+
+
 class Attendance(models.Model):
     STATUS_CHOICES = [
         ('present', 'Present'),
@@ -308,31 +313,16 @@ class MilkReceived(models.Model):
 
 @receiver(post_save, sender=MilkReceived)
 def update_milk_distribution_totals(sender, instance, created, **kwargs):
-    """
-    Updates MilkDistribution totals whenever a MilkReceived record is created.
-    This ensures totals are updated from all sources: manager distribution, seller recording, inter-seller transactions.
-    """
     if created:
-        from .utils import get_or_create_daily_operations, update_milk_distribution_totals
-        # Find the manager for this seller's location
-        # Assuming each location has one manager, but since manager is per user, we need to get the manager who manages this location
-        # For now, we'll assume the manager is the one who has daily operations on this date
-        # But to make it general, we can get all managers and update their daily operations if they have sellers in this location
-        # Actually, since MilkDistribution is per manager per date, we need to update for the manager who manages this seller's location
-
-        # Get the manager who manages employees in this location? Wait, manager manages employees, not locations directly.
-        # Perhaps we need to assume there's one manager per system, or find the manager who has daily operations on this date.
-
-        # Actually, looking at the code, in record_milk_distribution, it gets the manager from request.user
-        # But for other sources, we need to find the appropriate manager.
-
-        # Perhaps we can get the manager who has the most employees or something, but that's hacky.
-        # Better: since locations are managed by the system, and manager is per system, we can get the first manager.
-
-        manager = Manager.objects.first()
-        if manager:
-            daily_ops = get_or_create_daily_operations(manager, instance.date)
-            update_milk_distribution_totals(daily_ops)
+        from .models import SystemMilkDistribution
+        from .utils import calculate_total_milk_distributed
+        system_dist, created = SystemMilkDistribution.objects.get_or_create(
+            date=instance.date,
+            defaults={'total_milk': Decimal('0.00')}
+        )
+        total_milk = calculate_total_milk_distributed(None)  # Pass None since it's system-wide
+        system_dist.total_milk = total_milk
+        system_dist.save()
 
 
 class DailyTotal(models.Model):
@@ -424,8 +414,5 @@ class Notification(models.Model):
 
 @receiver(post_save, sender=User)
 def create_admin_profile(sender, instance, created, **kwargs):
-    """
-    Automatically create an Admin profile when a new superuser is created.
-    """
     if created and instance.is_superuser and instance.role == 'admin':
         Admin.objects.get_or_create(user=instance, defaults={'name': instance.username})

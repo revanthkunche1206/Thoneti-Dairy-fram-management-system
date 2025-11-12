@@ -12,9 +12,6 @@ from calendar import monthrange
 
 
 def get_or_create_daily_operations(manager, operation_date=None):
-    """
-    Ensures each manager has only one DailyOperations record per day.
-    """
     if operation_date is None:
         operation_date = date.today()
 
@@ -28,10 +25,6 @@ def get_or_create_daily_operations(manager, operation_date=None):
 
 @transaction.atomic
 def mark_attendance_and_update(employee, attendance_date, status: str):
-    """
-    Marks attendance and recalculates salary when necessary.
-    Automatically updates Salary model for that month.
-    """
     if isinstance(attendance_date, str):
         attendance_date = datetime.strptime(attendance_date, "%Y-%m-%d").date()
 
@@ -60,10 +53,6 @@ def mark_attendance_and_update(employee, attendance_date, status: str):
 
 
 def calculate_and_update_salary(employee, attendance_date):
-    """
-    Core salary calculation logic.
-    Automatically updates Salary records each time attendance changes.
-    """
     month = attendance_date.strftime('%Y-%m')
 
     salary, _ = Salary.objects.get_or_create(
@@ -99,20 +88,20 @@ def calculate_and_update_salary(employee, attendance_date):
     return salary
 
 
-def calculate_total_milk_distributed(daily_operations):
-    """
-    Calculates total milk distributed for the day by summing up
-    all MilkReceived records.
-    """
-    return MilkReceived.objects.filter(
-        date=daily_operations.date
-    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+def calculate_total_milk_distributed(daily_operations=None):
+    if daily_operations:
+        return MilkReceived.objects.filter(
+            date=daily_operations.date
+        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+    else:
+        # System-wide total for today
+        from datetime import date
+        return MilkReceived.objects.filter(
+            date=date.today()
+        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
 
 def update_milk_distribution_totals(daily_operations):
-    """
-    Updates total milk in MilkDistribution when new milk is received.
-    """
     total_milk = calculate_total_milk_distributed(daily_operations)
 
     milk_dist, created = MilkDistribution.objects.get_or_create(
@@ -133,10 +122,6 @@ def update_milk_distribution_totals(daily_operations):
 
 
 def get_employee_dashboard_data(employee):
-    """
-    Returns structured data for Employee Dashboard.
-    Includes attendance %, salary, deductions, and pay summary.
-    """
     today = date.today()
     current_month = today.strftime('%Y-%m')
     total_days = monthrange(today.year, today.month)[1]
@@ -181,16 +166,10 @@ def get_employee_dashboard_data(employee):
 
 
 def create_notification(user, message):
-    """
-    Creates a notification record for a user.
-    """
     return Notification.objects.create(user=user, message=message)
 
 
 def notify_all_sellers_about_request(milk_request):
-    """
-    Notifies all sellers when a new milk request is created.
-    """
     other_sellers = Seller.objects.filter(is_active=True).exclude(
         seller_id=milk_request.from_seller.seller_id
     )
@@ -206,9 +185,6 @@ def notify_all_sellers_about_request(milk_request):
 
 
 def create_borrow_lend_record(milk_request, accepting_seller):
-    """
-    Creates BorrowLendRecord when a milk request is accepted.
-    """
     record = BorrowLendRecord.objects.create(
         borrower_seller=milk_request.from_seller,
         lender_seller=accepting_seller,
@@ -228,18 +204,12 @@ def create_borrow_lend_record(milk_request, accepting_seller):
 
 
 def validate_attendance_date(attendance_date):
-    """
-    Ensures attendance cannot be marked for a future date.
-    """
     if attendance_date > date.today():
         raise ValidationError("Cannot mark attendance for future dates.")
     return True
 
 
 def get_monthly_attendance_summary(employee, year, month):
-    """
-    Provides a detailed monthly attendance summary.
-    """
     attendances = Attendance.objects.filter(
         employee=employee,
         date__year=year,
@@ -258,9 +228,6 @@ def get_monthly_attendance_summary(employee, year, month):
 
 
 def get_seller_daily_summary(seller, summary_date=None):
-    """
-    Returns a seller’s daily summary with milk and revenue.
-    """
     if summary_date is None:
         summary_date = date.today()
 
@@ -296,10 +263,6 @@ def get_seller_daily_summary(seller, summary_date=None):
 
 
 def get_location_statistics():
-    """
-    Returns statistics for all locations with seller and milk data.
-    Ensures location_id and address are included for dropdown population.
-    """
     stats = []
     today = date.today()
 

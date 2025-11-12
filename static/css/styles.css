@@ -497,9 +497,7 @@ tr:hover {
   transition: width 0.3s;
 }
 
-/* ============================
-   RESPONSIVE DESIGN
-============================ */
+
 @media (max-width: 768px) {
   .dashboard-header {
     flex-direction: column;

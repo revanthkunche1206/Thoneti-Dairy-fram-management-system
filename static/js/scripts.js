@@ -92,33 +92,35 @@ async function apiFetch(url, options = {}) {
   headers["Content-Type"] = "application/json";
   headers["X-CSRFToken"] = getCSRFToken();
   options.headers = headers;
-  
+
   const res = await fetch(url, options);
 
   if (res.status === 204) {
       return null;
   }
-  
-  if (!res.ok) {
-      let err;
-      try {
-          err = await res.json();
-      } catch (e) {
-          err = { detail: await res.text() };
-      }
 
-      console.error("API error:", err);
-      let message = 'An unknown server error occurred.';
-      if (typeof err === 'object' && err !== null) {
-          message = Object.values(err).flat().join(' ');
-      }
-      throw new Error(message);
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    if (res.ok) {
+      throw new Error('Invalid JSON response');
+    } else {
+      data = { detail: text };
+    }
   }
-  
-  if (res.status !== 204) {
-      return res.json();
+
+  if (!res.ok) {
+    console.error("API error:", data);
+    let message = 'An unknown server error occurred.';
+    if (typeof data === 'object' && data !== null) {
+      message = Object.values(data).flat().join(' ');
+    }
+    throw new Error(message);
   }
-  return null;
+
+  return data;
 }
 
 
@@ -944,6 +946,7 @@ document.addEventListener("DOMContentLoaded", () => {
           loadDatewiseData(selectedDate);
         }
       });
+      loadManagerDashboardStats();
       // Initial load
       const today = getCurrentDate();
       loadDailyDataForDate(today);
@@ -1009,16 +1012,13 @@ document.addEventListener("DOMContentLoaded", () => {
           resetForm(leftoverMilkForm);
       }
       
-      // Note: Misc expense form is not populated from this function in the original,
-      // but you could add it here if needed, filtering for 'Miscellaneous' category.
-
+ 
     } catch (error) {
       console.error("Failed to load daily data:", error);
       showModal("errorModal", "Failed to load form data for selected date: " + error.message);
     }
   }
   
-  // Universal modal close clicker
   document.querySelectorAll('.modal').forEach(modal => {
       modal.addEventListener('click', (e) => {
           if (e.target === modal) {
@@ -1028,3 +1028,24 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   
 });
+
+
+let managerChartInstance = null;
+
+async function loadManagerDashboardStats() {
+  try {
+    const data = await apiFetch(`${BASE_URL}/manager/dashboard-stats/`);
+
+    // 1. Populate the stat cards
+    document.getElementById("dashTodayMilk").textContent = parseFloat(data.today_milk).toFixed(2);
+    document.getElementById("dashTodayExpenses").textContent = parseFloat(data.today_expenses).toFixed(2);
+    document.getElementById("dashTotalEmployees").textContent = data.total_employees;
+    document.getElementById("dashTotalLocations").textContent = data.total_locations;
+
+    // 2. Initialize or update the chart
+
+  } catch (error) {
+    console.error("Failed to load manager dashboard stats:", error);
+    showModal('errorModal', 'Could not load dashboard statistics.');
+  }
+}
