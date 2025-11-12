@@ -62,10 +62,23 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Manager(models.Model):
-    manager_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    manager_id = models.CharField(max_length=10, primary_key=True, unique=True, editable=False, blank=True)
     name = models.CharField(max_length=255)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='manager_profile')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.manager_id:
+            last_manager = Manager.objects.order_by('-manager_id').first()
+            if last_manager and last_manager.manager_id.startswith('manager'):
+                try:
+                    num = int(last_manager.manager_id[7:]) + 1 # 'manager' is 7 chars
+                    self.manager_id = f'manager{num:03d}'
+                except ValueError:
+                    self.manager_id = 'manager001'
+            else:
+                self.manager_id = 'manager001'
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
