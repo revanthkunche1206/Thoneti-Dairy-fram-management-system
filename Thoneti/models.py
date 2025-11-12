@@ -1,8 +1,8 @@
 from django.db import models, IntegrityError
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+# from django.db.models.signals import post_save
+# from django.dispatch import receiver
 import uuid
 from decimal import Decimal
 
@@ -292,36 +292,36 @@ class MilkReceived(models.Model):
         db_table = 'milkreceived'
 
 
-@receiver(post_save, sender=MilkReceived)
-def update_milk_distribution_totals(sender, instance, created, **kwargs):
-    """
-    Updates MilkDistribution totals whenever a MilkReceived record is created.
-    This ensures totals are updated from all sources: manager distribution, seller recording, inter-seller transactions.
-    """
-    if created:
-        from .utils import get_or_create_daily_operations, update_milk_distribution_totals
-        # Find the manager for this seller's location
-        # Assuming each location has one manager, but since manager is per user, we need to get the manager who manages this location
-        # For now, we'll assume the manager is the one who has daily operations on this date
-        # But to make it general, we can get all managers and update their daily operations if they have sellers in this location
-        # Actually, since MilkDistribution is per manager per date, we need to update for the manager who manages this seller's location
+# @receiver(post_save, sender=MilkReceived)
+# def update_milk_distribution_totals(sender, instance, created, **kwargs):
+#     """
+#     Updates MilkDistribution totals whenever a MilkReceived record is created.
+#     This ensures totals are updated from all sources: manager distribution, seller recording, inter-seller transactions.
+#     """
+#     if created:
+#         from .utils import get_or_create_daily_operations, update_milk_distribution_totals
+#         # Find the manager for this seller's location
+#         # Assuming each location has one manager, but since manager is per user, we need to get the manager who manages this location
+#         # For now, we'll assume the manager is the one who has daily operations on this date
+#         # But to make it general, we can get all managers and update their daily operations if they have sellers in this location
+#         # Actually, since MilkDistribution is per manager per date, we need to update for the manager who manages this seller's location
 
-        # Get the manager who manages employees in this location? Wait, manager manages employees, not locations directly.
-        # Looking at the model, Manager has employees, but locations are separate.
-        # Perhaps we need to assume there's one manager per system, or find the manager who has daily operations on this date.
+#         # Get the manager who manages employees in this location? Wait, manager manages employees, not locations directly.
+#         # Looking at the model, Manager has employees, but locations are separate.
+#         # Perhaps we need to assume there's one manager per system, or find the manager who has daily operations on this date.
 
-        # For simplicity, since the system seems to have one manager, we'll get the manager from the seller's location or find the manager who has daily operations.
+#         # For simplicity, since the system seems to have one manager, we'll get the manager from the seller's location or find the manager who has daily operations.
 
-        # Actually, looking at the code, in record_milk_distribution, it gets the manager from request.user
-        # But for other sources, we need to find the appropriate manager.
+#         # Actually, looking at the code, in record_milk_distribution, it gets the manager from request.user
+#         # But for other sources, we need to find the appropriate manager.
 
-        # Perhaps we can get the manager who has the most employees or something, but that's hacky.
-        # Better: since locations are managed by the system, and manager is per system, we can get the first manager.
+#         # Perhaps we can get the manager who has the most employees or something, but that's hacky.
+#         # Better: since locations are managed by the system, and manager is per system, we can get the first manager.
 
-        manager = Manager.objects.first()
-        if manager:
-            daily_ops = get_or_create_daily_operations(manager, instance.date)
-            update_milk_distribution_totals(daily_ops)
+#         manager = Manager.objects.first()
+#         if manager:
+#             daily_ops = get_or_create_daily_operations(manager, instance.date)
+#             update_milk_distribution_totals(daily_ops)
 
 
 class DailyTotal(models.Model):

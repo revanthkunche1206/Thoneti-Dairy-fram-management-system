@@ -467,6 +467,16 @@ def get_employee_attendance(request):
     ]
     return Response(data, status=status.HTTP_200_OK)
 
+# @api_view(['POST'])
+# def record_milk_received(request):
+#     """Seller records received milk."""
+#     seller = get_object_or_404(Seller, user=request.user)
+#     milk_date = _parse_date(request.data.get('date'))
+#     quantity = Decimal(request.data.get('quantity', 0))
+#     source = request.data.get('source', 'From Farm')
+#     record = MilkReceived.objects.create(seller=seller, quantity=quantity, date=milk_date, source=source)
+#     return Response(MilkReceivedSerializer(record).data, status=status.HTTP_201_CREATED)
+
 @api_view(['POST'])
 def record_milk_received(request):
     """Seller records received milk."""
@@ -475,6 +485,16 @@ def record_milk_received(request):
     quantity = Decimal(request.data.get('quantity', 0))
     source = request.data.get('source', 'From Farm')
     record = MilkReceived.objects.create(seller=seller, quantity=quantity, date=milk_date, source=source)
+
+    # --- Start of Added Logic ---
+    # Replicate signal logic: Find the primary manager to update their daily operations
+    # This assumes a single-manager system, which matches the signal's original (flawed) logic
+    manager = Manager.objects.first()
+    if manager:
+        daily_ops = get_or_create_daily_operations(manager, milk_date)
+        update_milk_distribution_totals(daily_ops)
+    # --- End of Added Logic ---
+
     return Response(MilkReceivedSerializer(record).data, status=status.HTTP_201_CREATED)
 
 
@@ -563,20 +583,33 @@ def mark_as_received(request, request_id):
     # Update request status to received
     milk_request.status = 'received'
     milk_request.save()
-
-    # Record the milk received for the borrower from inter-seller
-    MilkReceived.objects.create(
-        seller=milk_request.from_seller,
-        quantity=milk_request.quantity,
-        date=date.today(),
-        source='Inter Seller'
+    today = date.today()
+    MilkReceived.objects.create(seller=milk_request.from_seller,
+    quantity=milk_request.quantity,
+    date=today,
+    source='Inter Seller'
     )
+    manager = Manager.objects.first()
+    if manager:
+      daily_ops = get_or_create_daily_operations(manager, today)
+      update_milk_distribution_totals(daily_ops)
+# --- End of Added Logic ---
 
-    # Update the total milk received for the seller (this will be reflected in the summary)
-    # The summary already aggregates all MilkReceived, so no additional update needed here
-
-    # Update borrow/lend record as settled
+# Update borrow/lend record as settled
     borrow_lend_record = milk_request.borrow_lend_records.first()
+    # # Record the milk received for the borrower from inter-seller
+    # MilkReceived.objects.create(
+    #     seller=milk_request.from_seller,
+    #     quantity=milk_request.quantity,
+    #     date=date.today(),
+    #     source='Inter Seller'
+    # )
+
+    # # Update the total milk received for the seller (this will be reflected in the summary)
+    # # The summary already aggregates all MilkReceived, so no additional update needed here
+
+    # # Update borrow/lend record as settled
+    # borrow_lend_record = milk_request.borrow_lend_records.first()
     if borrow_lend_record:
         borrow_lend_record.settled = True
         borrow_lend_record.save()
