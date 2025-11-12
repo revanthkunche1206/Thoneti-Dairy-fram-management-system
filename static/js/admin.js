@@ -20,27 +20,23 @@ async function apiFetch(url, options = {}) {
     
     const res = await fetch(url, options);
 
-    // Handle 204 No Content (for DELETE)
     if (res.status === 204) {
-        return null; // Return null for success with no content
+        return null;
     }
     
-    // Check for other errors
     if (!res.ok) {
         let err;
         try {
-            err = await res.json(); // Try to parse error JSON
+            err = await res.json();
         } catch (e) {
-            err = { detail: await res.text() }; // Fallback to text
+            err = { detail: await res.text() };
         }
 
         console.error("API error:", err);
-        // Use a specific error message if available
         const message = err.username ? err.username[0] : (err.detail || 'An unknown server error occurred.');
         throw new Error(message);
     }
     
-    // Only parse JSON if there's content and response wasn't 204
     if (res.status !== 204) {
         return res.json();
     }
@@ -120,25 +116,19 @@ async function registerManager(event) {
             body: JSON.stringify(data)
         });
 
-        // --- FIX: LOGIC RE-ORDERED ---
-        // First, check if the response is OK (e.g., 200, 201)
         if (response.ok) {
-            const result = await response.json(); // Now it's safe to parse success JSON
+            const result = await response.json();
             showModal('successModal', `Manager "${result.name}" registered successfully!`);
             event.target.reset();
-            loadManagers(); // This will refresh the table and stats
+            loadManagers();
         } else {
-            // If response is not OK (e.g., 400), parse the error JSON
             const result = await response.json();
-            // Display the specific error from the server
             const errorMsg = result.username ? result.username[0] : (result.detail || 'Registration failed. Please try again.');
             showModal('errorModal', errorMsg);
         }
-        // --- END OF FIX ---
 
     } catch (error) {
         console.error('Registration error:', error);
-        // This 'catch' will now only handle actual network failures
         showModal('errorModal', error.message || 'Network error. Please check your connection.');
     }
 }
@@ -160,7 +150,6 @@ function populateManagersTable(managers) {
                 </td>
             </tr>
         `;
-        // Still update stats even if empty
         updateStats(managers);
         return;
     }
@@ -196,12 +185,7 @@ function populateManagersTable(managers) {
 
 function updateStats(managers) {
     const totalManagers = managers.length;
-    
-    // --- FIX AS DISCUSSED PREVIOUSLY ---
-    // The API returns only active managers, so the count is just the length.
     const activeManagers = managers.length;
-    // --- END OF FIX ---
-
     const today = new Date().toISOString().split('T')[0];
     const todayManagers = managers.filter(m => m.created_at.startsWith(today)).length;
 
@@ -226,13 +210,10 @@ function setAdminName() {
     document.getElementById('adminName').textContent = adminName;
 }
 
-// --- ADD THESE NEW FUNCTIONS ---
 function showDeleteConfirmation(managerId, managerName) {
-    // Set the message
     const message = `Do you really want to delete manager "${managerName}" (ID: ${managerId})? This action cannot be undone.`;
     showModal('confirmDeleteModal', message);
 
-    // Store the ID on the confirm button
     const confirmButton = document.getElementById('confirmDeleteButton');
     confirmButton.dataset.id = managerId;
 }
@@ -244,18 +225,14 @@ async function handleDeleteManager() {
     if (!managerId) return;
 
     try {
-        // apiFetch will return null for a 204 success
         await apiFetch(`${BASE_URL}/admin/managers/${managerId}/delete/`, {
             method: 'DELETE',
         });
 
-        // Close confirmation modal
         closeModal();
 
-        // Show success
         showModal('successModal', `Manager (ID: ${managerId}) has been successfully deleted.`);
 
-        // Reload the table
         loadManagers();
 
     } catch (error) {
@@ -263,11 +240,9 @@ async function handleDeleteManager() {
         closeModal();
         showModal('errorModal', `Failed to delete manager: ${error.message}`);
     } finally {
-        // Clear the ID from the button
         delete confirmButton.dataset.id;
     }
 }
-// --- END OF ADDED FUNCTIONS ---
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -279,15 +254,12 @@ document.addEventListener('DOMContentLoaded', () => {
         registerForm.addEventListener('submit', registerManager);
     }
 
-    // --- ADD EVENT LISTENERS ---
-    
-    // 1. Listen for clicks on the delete button in the table
     const tableBody = document.getElementById('managersTableBody');
     if (tableBody) {
         tableBody.addEventListener('click', (e) => {
             const deleteButton = e.target.closest('.btn-delete');
             if (deleteButton) {
-                e.preventDefault(); // Good practice
+                e.preventDefault();
                 const managerId = deleteButton.dataset.id;
                 const managerName = deleteButton.dataset.name;
                 showDeleteConfirmation(managerId, managerName);
@@ -295,14 +267,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 2. Listen for clicks on the final confirmation button
     const confirmButton = document.getElementById('confirmDeleteButton');
     if (confirmButton) {
         confirmButton.addEventListener('click', handleDeleteManager);
     }
-    // --- END OF ADDED LISTENERS ---
 
-    // Close modals when clicking outside
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {

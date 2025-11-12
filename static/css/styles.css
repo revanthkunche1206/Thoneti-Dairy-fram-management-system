@@ -635,7 +635,7 @@ tr:hover {
     background-color: rgba(0, 0, 0, 0.6);
     align-items: center;
     justify-content: center;
-    opacity: 0;
+    opacity: 1;
     transition: opacity 0.3s ease;
 }
 
@@ -655,6 +655,7 @@ tr:hover {
     text-align: center;
     transform: scale(0.9);
     transition: transform 0.3s ease;
+    background: white
 }
 
 .modal.show .modal-content {
