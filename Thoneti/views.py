@@ -21,7 +21,7 @@ from .models import (
     User, Manager, Employee, Seller, Location, DailyOperations,
     FeedRecord, ExpenseRecord, MedicineRecord, MilkReceived,
     MilkDistribution, Attendance, Salary, Deduction, DailyTotal,
-    MilkRequest, BorrowLendRecord, Notification, Admin
+    MilkRequest, BorrowLendRecord, Notification, Admin, Sale # Import Sale model
 )
 
 from .serializers import (
@@ -586,6 +586,40 @@ def accept_milk_request(request, request_id):
     """Seller accepts a milk request."""
     seller = get_object_or_404(Seller, user=request.user)
     milk_request = get_object_or_404(MilkRequest, request_id=request_id, status='pending')
+    
+    # --- START OF NEW LOGIC ---
+    today = date.today()
+    requested_quantity = milk_request.quantity
+
+    # 1. Calculate total milk received today (status='received')
+    total_received_today = MilkReceived.objects.filter(
+        seller=seller, 
+        date=today, 
+        status='received'
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+    # 2. Calculate total milk sold today (from Sale model)
+    total_sold_today = Sale.objects.filter(
+        seller=seller, 
+        date=today
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+    # 3. Calculate total milk already promised (lent) today but not settled
+    total_lent_today = BorrowLendRecord.objects.filter(
+        lender_seller=seller, 
+        borrow_date=today,
+        settled=False 
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+    available_milk = total_received_today - total_sold_today - total_lent_today
+
+    if available_milk < requested_quantity:
+        return Response(
+            {'message': f'Not enough milk to accept this request. You have {available_milk}L available.'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    # --- END OF NEW LOGIC ---
+
     milk_request.to_seller = seller
     milk_request.status = 'on_hold'
     milk_request.save()
