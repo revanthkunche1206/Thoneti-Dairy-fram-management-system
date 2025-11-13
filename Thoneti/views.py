@@ -301,7 +301,6 @@ def list_pending_distributions(request):
 @permission_classes([IsAuthenticated])
 @transaction.atomic
 def update_milk_received_status(request, receipt_id):
-    """Seller updates the status of a milk distribution."""
     seller = get_object_or_404(Seller, user=request.user)
     record = get_object_or_404(MilkReceived, receipt_id=receipt_id, seller=seller)
     
@@ -314,23 +313,22 @@ def update_milk_received_status(request, receipt_id):
     
     if new_status == 'received':
         message = f"Seller {seller.name} has confirmed receipt of {record.quantity}L for {record.date}."
-    else: # 'not_received'
+    else:
         message = f"Seller {seller.name} has marked the distribution of {record.quantity}L for {record.date} as 'Not Received'."
 
     if record.manager:
         create_notification(record.manager.user, message)
 
-    if new_status == 'received':
-        from .utils import update_milk_distribution_totals
-        daily_ops = get_or_create_daily_operations(record.manager, record.date)
-        update_milk_distribution_totals(daily_ops)
+        if new_status == 'received':
+            from .utils import update_milk_distribution_totals
+            daily_ops = get_or_create_daily_operations(record.manager, record.date)
+            update_milk_distribution_totals(daily_ops)
 
     return Response({'message': f'Status updated to {new_status}.'}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def list_manager_pending_distributions(request):
-    """Lists pending milk distributions sent by the logged-in manager."""
     manager = get_object_or_404(Manager, user=request.user)
     
     records = MilkReceived.objects.filter(
@@ -624,15 +622,12 @@ def list_my_requests(request):
 @api_view(['POST'])
 @transaction.atomic
 def mark_as_received(request, request_id):
-    """Requesting seller marks the milk as received."""
     seller = get_object_or_404(Seller, user=request.user)
     milk_request = get_object_or_404(MilkRequest, request_id=request_id, from_seller=seller, status='on_hold')
 
-    # Update request status to received
     milk_request.status = 'received'
     milk_request.save()
 
-    # Record the milk received for the borrower from inter-seller
     MilkReceived.objects.create(
         seller=milk_request.from_seller,
         quantity=milk_request.quantity,
@@ -640,16 +635,11 @@ def mark_as_received(request, request_id):
         source='Inter Seller'
     )
 
-    # Update the total milk received for the seller (this will be reflected in the summary)
-    # The summary already aggregates all MilkReceived, so no additional update needed here
-
-    # Update borrow/lend record as settled
     borrow_lend_record = milk_request.borrow_lend_records.first()
     if borrow_lend_record:
         borrow_lend_record.settled = True
         borrow_lend_record.save()
 
-    # Notify the responding seller that the milk has been received
     message = (
         f"The milk you provided ({milk_request.quantity}L) has been received by "
         f"{milk_request.from_seller.name} ({milk_request.from_seller.location.location_name}). "
