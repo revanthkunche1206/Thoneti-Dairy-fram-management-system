@@ -40,35 +40,85 @@
                             <p style="text-align: center; color: #999; padding: 20px;">Loading pending deliveries...</p>
                         </div>
                     </div>
+
+                    <!-- NEW SECTION FOR INDIVIDUAL SALES -->
                     <div class="card">
-                        <h3><span class="card-icon">💰</span>Daily Sales Entry</h3>
-                        <form id="dailySalesForm">
+                        <h3><span class="card-icon">🛒</span>Record Customer Sale</h3>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                            Record each individual sale here. This will update your "Remaining Milk".
+                        </p>
+                        <form id="customerSaleForm">
+                            <input type="hidden" name="date" data-field="date">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Customer Name</label>
+                                    <input type="text" name="customerName" placeholder="Enter customer name (optional)" data-field="customerName">
+                                </div>
+                                <div class="form-group">
+                                    <label>Quantity Sold (Liters)</label>
+                                    <input type="number" step="0.01" name="quantity" placeholder="Enter quantity" required data-field="quantity">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-secondary">Record Sale</button>
+                        </form>
+                        <div class="table-container" style="margin-top: 20px;">
+                            <table id="todaySalesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Customer</th>
+                                        <th>Quantity (L)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="3" style="text-align: center; color: #999;">No sales recorded yet today.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- This form is now for financial totals -->
+                    <div class="card">
+                        <h3><span class="card-icon">💰</span>Daily Financial Entry</h3>
+                         <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                            Update your total cash and online earnings for the day here.
+                        </p>
+                        <form id="dailyTotalsForm"> <!-- ID CHANGED -->
                             <input type="hidden" name="sellerId" data-field="sellerId">
                             <input type="hidden" name="date" data-field="date">
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Cash Earned (₹)</label>
-                                    <input type="number" name="cashEarned" placeholder="Enter cash amount" required data-field="cashEarned">
+                                    <input type="number" step="0.01" name="cashEarned" placeholder="Enter cash amount" required data-field="cashEarned">
                                 </div>
                                 <div class="form-group">
                                     <label>Online Payment Earned (₹)</label>
-                                    <input type="number" name="onlineEarned" placeholder="Enter online amount" required data-field="onlineEarned">
+                                    <input type="number" step="0.01" name="onlineEarned" placeholder="Enter online amount" required data-field="onlineEarned">
                                 </div>
                                 <div class="form-group">
                                     <label>Total Revenue (Auto-calculated)</label>
                                     <input type="number" name="revenue" readonly style="background: #f0f0f0; font-weight: bold;" data-field="revenue">
                                 </div>
                             </div>
-                            <button type="submit" class="btn-secondary">Save Daily Sales</button>
+                            <button type="submit" class="btn-secondary">Save Daily Totals</button>
                         </form>
                     </div>
 
                     <div class="card">
                         <h3><span class="card-icon">📊</span>Today's Summary</h3>
-                        <div class="stats-grid">
+                        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                            <!-- NEW CARD -->
+                            <div class="stat-card" style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);">
+                                <h4>Remaining Milk</h4>
+                                <div class="value"><span id="todayRemainingMilk">0</span> L</div>
+                            </div>
                             <div class="stat-card">
                                 <h4>Total Milk Received</h4>
                                 <div class="value"><span id="todayMilkReceived">0</span> L</div>
+                            </div>
+                             <div class="stat-card">
+                                <h4>Total Milk Sold</h4>
+                                <div class="value"><span id="todayMilkSold">0</span> L</div>
                             </div>
                             <div class="stat-card">
                                 <h4>Inter-Seller Milk</h4>
@@ -99,7 +149,7 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Quantity Needed (Liters)</label>
-                                    <input type="number" name="quantity" placeholder="Enter quantity needed" required data-field="quantity">
+                                    <input type="number" step="0.01" name="quantity" placeholder="Enter quantity needed" required data-field="quantity">
                                 </div>
                             </div>
                             <p style="color: #666; font-size: 14px; margin-bottom: 15px;">

@@ -1,12 +1,12 @@
 from datetime import datetime, date
 from decimal import Decimal
 from django.db import transaction
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.core.exceptions import ValidationError
 from .models import (
     DailyOperations, Salary, Attendance, MilkReceived, 
     MilkDistribution, Deduction, Notification, Seller, 
-    BorrowLendRecord, Location
+    BorrowLendRecord, Location, Sale, DailyTotal
 )
 from calendar import monthrange
 
@@ -230,32 +230,59 @@ def get_seller_daily_summary(seller, summary_date=None):
     if summary_date is None:
         summary_date = date.today()
 
-    base_query = MilkReceived.objects.filter(
+    # 1. Total milk received (from farm AND inter-seller)
+    milk_received_records = MilkReceived.objects.filter(
         seller=seller,
         date=summary_date,
         status='received'
     )
+    total_received_today = milk_received_records.aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
-    milk_received = base_query.aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
-
-    farm_milk = base_query.filter(
+    farm_milk = milk_received_records.filter(
         source='From Farm'
     ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
-    inter_seller_milk = base_query.filter(
+    inter_seller_milk = milk_received_records.filter(
         source='Inter Seller'
     ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
-    daily_total = seller.daily_totals.filter(date=summary_date).first()
+    # 2. Total milk sold (individual customer sales)
+    total_sold_today = Sale.objects.filter(
+        seller=seller,
+        date=summary_date
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+    
+    # Get all individual sales
+    individual_sales = Sale.objects.filter(
+        seller=seller,
+        date=summary_date
+    ).order_by('-created_at')
+
+    # 3. Total milk lent (promised to others, not yet settled)
+    total_lent_today = BorrowLendRecord.objects.filter(
+        lender_seller=seller,
+        borrow_date=summary_date,
+        settled=False
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+
+    # 4. Calculate Remaining Milk
+    remaining_milk = total_received_today - total_sold_today - total_lent_today
+
+    # 5. Get financial totals
+    daily_total = DailyTotal.objects.filter(seller=seller, date=summary_date).first()
 
     return {
         'date': summary_date,
-        'milk_received': milk_received,
+        'total_milk_received': total_received_today,
         'farm_milk': farm_milk,
         'inter_seller_milk': inter_seller_milk,
+        'total_milk_sold': total_sold_today,
+        'total_milk_lent': total_lent_today,
+        'remaining_milk': remaining_milk,
         'revenue': daily_total.revenue if daily_total else Decimal('0.00'),
-        'total_received': daily_total.total_received if daily_total else Decimal('0.00'),
-        'total_sold': daily_total.total_sold if daily_total else Decimal('0.00')
+        'cash_sales': daily_total.cash_sales if daily_total else Decimal('0.00'),
+        'online_sales': daily_total.online_sales if daily_total else Decimal('0.00'),
+        'individual_sales': individual_sales # Return the query set
     }
 
 

@@ -335,8 +335,8 @@ class DailyTotal(models.Model):
     total_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE, related_name='daily_totals')
     date = models.DateField()
-    total_received = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_sold = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cash_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0) # Renamed from total_received
+    online_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0) # Renamed from total_sold
     revenue = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -352,8 +352,9 @@ class Sale(models.Model):
     sale_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE, related_name='sales')
     date = models.DateField()
+    customer_name = models.CharField(max_length=255, blank=True, null=True) # New field
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2) # This might be deprecated if we use DailyTotal
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

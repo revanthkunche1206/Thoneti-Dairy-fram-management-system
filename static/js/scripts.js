@@ -470,14 +470,47 @@ document.addEventListener("DOMContentLoaded", () => {
     updateDateInputs();
   }
 
-  const dailySalesForm = document.getElementById("dailySalesForm");
-  if (dailySalesForm) {
-    dailySalesForm.addEventListener("input", e => {
-      const cash = parseFloat(dailySalesForm.querySelector('[name="cashEarned"]').value) || 0;
-      const online = parseFloat(dailySalesForm.querySelector('[name="onlineEarned"]').value) || 0;
-      dailySalesForm.querySelector('[name="revenue"]').value = (cash + online).toFixed(2);
+  // --- THIS IS THE NEW FORM HANDLER FOR INDIVIDUAL SALES ---
+  const customerSaleForm = document.getElementById("customerSaleForm");
+  if (customerSaleForm) {
+      customerSaleForm.addEventListener("submit", async e => {
+          e.preventDefault();
+          try {
+              const f = new FormData(e.target);
+              const data = {
+                  customerName: f.get("customerName"),
+                  quantity: parseFloat(f.get("quantity")),
+                  date: getSelectedDate(),
+              };
+
+              // The API now returns the full updated summary
+              const newSummary = await apiFetch(`${BASE_URL}/seller/sale/record/`, { 
+                  method: "POST", 
+                  body: JSON.stringify(data) 
+              });
+              
+              showModal("successModal", "Sale recorded!");
+              e.target.reset();
+              updateDateInputs();
+              
+              // Update all stats with the new summary data from the response
+              updateSellerSummaryUI(newSummary);
+
+          } catch (error) {
+              showModal("errorModal", error.message);
+          }
+      });
+  }
+
+  // --- THIS FORM HANDLER IS RENAMED AND UPDATED ---
+  const dailyTotalsForm = document.getElementById("dailyTotalsForm");
+  if (dailyTotalsForm) {
+    dailyTotalsForm.addEventListener("input", e => {
+      const cash = parseFloat(dailyTotalsForm.querySelector('[name="cashEarned"]').value) || 0;
+      const online = parseFloat(dailyTotalsForm.querySelector('[name="onlineEarned"]').value) || 0;
+      dailyTotalsForm.querySelector('[name="revenue"]').value = (cash + online).toFixed(2);
     });
-    dailySalesForm.addEventListener("submit", async e => {
+    dailyTotalsForm.addEventListener("submit", async e => {
       e.preventDefault();
       try {
         const f = new FormData(e.target);
@@ -487,11 +520,12 @@ document.addEventListener("DOMContentLoaded", () => {
           revenue: parseFloat(f.get("revenue")),
           date: getSelectedDate(),
         };
-        await apiFetch(`${BASE_URL}/seller/sales/`, { method: "POST", body: JSON.stringify(data) });
-        showModal("successModal", "Daily sales recorded!");
+        // URL is updated
+        await apiFetch(`${BASE_URL}/seller/daily-totals/`, { method: "POST", body: JSON.stringify(data) });
+        showModal("successModal", "Daily financial totals recorded!");
         e.target.reset();
         updateDateInputs();
-        loadSellerSummary();
+        loadSellerSummary(); // Refresh summary
       } catch (error) {
         showModal("errorModal", error.message);
       }
@@ -525,6 +559,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       showModal("successModal", "Request accepted! Status changed to On Hold.");
       loadIncomingRequests();
+      loadSellerSummary(); // Refresh summary as our remaining milk has changed
     } catch (error) {
       showModal("errorModal", error.message);
     }
@@ -538,22 +573,51 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       showModal("successModal", "Milk marked as received! Transaction completed.");
       loadMyRequests();
-      loadSellerSummary();
+      loadSellerSummary(); // Refresh summary as our received milk has changed
       loadBorrowLendHistory();
     } catch (error) {
       showModal("errorModal", error.message);
     }
   };
 
+  // --- NEW FUNCTION TO POPULATE THE SALES TABLE ---
+  function populateTodaySalesTable(sales) {
+    const tbody = document.querySelector("#todaySalesTable tbody");
+    tbody.innerHTML = "";
+    if (!sales || sales.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #999;">No sales recorded yet today.</td></tr>';
+        return;
+    }
+    sales.forEach(sale => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${new Date(sale.created_at).toLocaleTimeString()}</td>
+            <td>${sale.customer_name || 'N/A'}</td>
+            <td>${sale.quantity} L</td>
+        `;
+        tbody.appendChild(row);
+    });
+  }
+
+  // --- NEW FUNCTION TO UPDATE ALL UI ELEMENTS FROM SUMMARY DATA ---
+  function updateSellerSummaryUI(summary) {
+      document.getElementById("todayRemainingMilk").textContent = summary.remaining_milk;
+      document.getElementById("todayMilkReceived").textContent = summary.total_milk_received;
+      document.getElementById("todayMilkSold").textContent = summary.total_milk_sold;
+      document.getElementById("todayInterSellerMilk").textContent = summary.inter_seller_milk;
+      document.getElementById("todayRevenue").textContent = summary.revenue;
+      document.getElementById("todayCash").textContent = summary.cash_sales;
+      document.getElementById("todayOnline").textContent = summary.online_sales;
+      
+      // Populate the new sales table
+      populateTodaySalesTable(summary.individual_sales);
+  }
+
   async function loadSellerSummary() {
     try {
       const selectedDate = getSelectedDate();
       const summary = await apiFetch(`${BASE_URL}/seller/summary/?date=${selectedDate}`);
-      document.getElementById("todayMilkReceived").textContent = summary.milk_received;
-      document.getElementById("todayInterSellerMilk").textContent = summary.inter_seller_milk;
-      document.getElementById("todayRevenue").textContent = summary.revenue;
-      document.getElementById("todayCash").textContent = summary.total_received;
-      document.getElementById("todayOnline").textContent = summary.total_sold;
+      updateSellerSummaryUI(summary); // Use the new helper function
     } catch (error) {
       console.error("Failed to load seller summary:", error);
     }
@@ -653,7 +717,7 @@ document.addEventListener("DOMContentLoaded", () => {
       card.className = "request-card";
       card.innerHTML = `
         <div class="request-info">
-          <h4>Request from ${request.from_seller_name}</h4>
+          <h4>Request from ${request.from_seller_name} (${request.from_seller_location})</h4>
           <p><strong>Quantity:</strong> ${request.quantity} Liters</p>
           <p><strong>Date:</strong> ${new Date(request.created_at).toLocaleDateString()}</p>
         </div>
@@ -1028,7 +1092,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ['Seller Name', 'Quantity (L)', 'Source', 'Status']
       );
 
-      populateTable('dailyTotalsTable', data.daily_totals, ['seller_name', 'total_received', 'total_sold', 'revenue'], ['Seller Name', 'Cash Sales (₹)', 'Online Sales (₹)', 'Total Revenue (₹)']); 
+      populateTable('dailyTotalsTable', data.daily_totals, ['seller_name', 'cash_sales', 'online_sales', 'revenue'], ['Seller Name', 'Cash Sales (₹)', 'Online Sales (₹)', 'Total Revenue (₹)']); 
       populateTable('attendanceTable', data.attendance, ['employee_name', 'status'], ['Employee Name', 'Status']);
 
     } catch (error) {

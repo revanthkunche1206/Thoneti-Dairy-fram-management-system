@@ -21,7 +21,7 @@ from .models import (
     User, Manager, Employee, Seller, Location, DailyOperations,
     FeedRecord, ExpenseRecord, MedicineRecord, MilkReceived,
     MilkDistribution, Attendance, Salary, Deduction, DailyTotal,
-    MilkRequest, BorrowLendRecord, Notification, Admin, Sale # Import Sale model
+    MilkRequest, BorrowLendRecord, Notification, Admin, Sale
 )
 
 from .serializers import (
@@ -32,7 +32,7 @@ from .serializers import (
     MedicineRecordSerializer, MilkReceivedSerializer, MilkDistributionSerializer,
     AttendanceSerializer, SalarySerializer, EmployeeDashboardSerializer,
     DailyTotalSerializer, MilkRequestSerializer, BorrowLendRecordSerializer,
-    NotificationSerializer, DeductionSerializer
+    NotificationSerializer, DeductionSerializer, SaleSerializer, SaleCreateSerializer
 )
 
 from .utils import (
@@ -534,19 +534,47 @@ def get_employee_attendance(request):
     return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-def record_milk_received(request):
-    """Seller records received milk."""
+@transaction.atomic
+def record_individual_sale(request):
+    """Seller records an individual sale to a customer."""
     seller = get_object_or_404(Seller, user=request.user)
-    milk_date = _parse_date(request.data.get('date'))
-    quantity = Decimal(request.data.get('quantity', 0))
-    source = request.data.get('source', 'From Farm')
-    record = MilkReceived.objects.create(seller=seller, quantity=quantity, date=milk_date, source=source)
-    return Response(MilkReceivedSerializer(record).data, status=status.HTTP_201_CREATED)
+    serializer = SaleCreateSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    sales_date = serializer.validated_data.get('date', date.today())
+    quantity_sold = serializer.validated_data.get('quantity', Decimal('0.00'))
+
+    # Check for available milk
+    summary = get_seller_daily_summary(seller, sales_date)
+    available_milk = summary.get('remaining_milk', Decimal('0.00'))
+
+    if quantity_sold > available_milk:
+        return Response(
+            {'message': f'Cannot sell {quantity_sold}L. You only have {available_milk}L remaining.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # total_amount is not really used, so we set it to 0
+    Sale.objects.create(
+        seller=seller,
+        date=sales_date,
+        customer_name=serializer.validated_data.get('customer_name'),
+        quantity=quantity_sold,
+        total_amount=Decimal('0.00') 
+    )
+
+    # Return the updated summary
+    new_summary = get_seller_daily_summary(seller, sales_date)
+    new_summary['individual_sales'] = SaleSerializer(new_summary['individual_sales'], many=True).data
+    
+    return Response(new_summary, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
-def record_daily_sales(request):
-    """Seller records daily sales."""
+def record_daily_totals(request):
+    """Seller records daily financial totals (cash/online)."""
     seller = get_object_or_404(Seller, user=request.user)
     sales_date = _parse_date(request.data.get('date'))
     cash = Decimal(request.data.get('cashEarned', 0))
@@ -556,7 +584,7 @@ def record_daily_sales(request):
     daily_total, _ = DailyTotal.objects.update_or_create(
         seller=seller,
         date=sales_date,
-        defaults={'revenue': revenue, 'total_received': cash, 'total_sold': online}
+        defaults={'revenue': revenue, 'cash_sales': cash, 'online_sales': online}
     )
     return Response(DailyTotalSerializer(daily_total).data, status=status.HTTP_201_CREATED)
 
@@ -566,7 +594,12 @@ def seller_daily_summary(request):
     """Seller gets summary for a given date."""
     seller = get_object_or_404(Seller, user=request.user)
     summary_date = _parse_date(request.query_params.get('date'))
-    return Response(get_seller_daily_summary(seller, summary_date), status=status.HTTP_200_OK)
+    
+    summary = get_seller_daily_summary(seller, summary_date)
+    # Serialize the individual_sales QuerySet
+    summary['individual_sales'] = SaleSerializer(summary['individual_sales'], many=True).data
+    
+    return Response(summary, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -587,38 +620,20 @@ def accept_milk_request(request, request_id):
     seller = get_object_or_404(Seller, user=request.user)
     milk_request = get_object_or_404(MilkRequest, request_id=request_id, status='pending')
     
-    # --- START OF NEW LOGIC ---
+    # --- UPDATED VALIDATION LOGIC ---
     today = date.today()
     requested_quantity = milk_request.quantity
 
-    # 1. Calculate total milk received today (status='received')
-    total_received_today = MilkReceived.objects.filter(
-        seller=seller, 
-        date=today, 
-        status='received'
-    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
-
-    # 2. Calculate total milk sold today (from Sale model)
-    total_sold_today = Sale.objects.filter(
-        seller=seller, 
-        date=today
-    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
-
-    # 3. Calculate total milk already promised (lent) today but not settled
-    total_lent_today = BorrowLendRecord.objects.filter(
-        lender_seller=seller, 
-        borrow_date=today,
-        settled=False 
-    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
-
-    available_milk = total_received_today - total_sold_today - total_lent_today
+    # Get current milk summary using the utility function
+    summary = get_seller_daily_summary(seller, today)
+    available_milk = summary.get('remaining_milk', Decimal('0.00'))
 
     if available_milk < requested_quantity:
         return Response(
-            {'message': f'Not enough milk to accept this request. You have {available_milk}L available.'}, 
+            {'message': f'Not enough milk to accept this request. You only have {available_milk}L available.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
-    # --- END OF NEW LOGIC ---
+    # --- END OF UPDATED LOGIC ---
 
     milk_request.to_seller = seller
     milk_request.status = 'on_hold'
@@ -641,7 +656,7 @@ def accept_milk_request(request, request_id):
 def list_incoming_requests(request):
     """Seller sees all incoming pending milk requests."""
     seller = get_object_or_404(Seller, user=request.user)
-    requests = MilkRequest.objects.filter(status='pending').exclude(from_seller=seller)
+    requests = MilkRequest.objects.filter(status='pending').select_related('from_seller', 'from_seller__location').exclude(from_seller=seller)
     return Response(MilkRequestSerializer(requests, many=True).data, status=status.HTTP_200_OK)
 
 
@@ -662,11 +677,13 @@ def mark_as_received(request, request_id):
     milk_request.status = 'received'
     milk_request.save()
 
+    # Create the MilkReceived record for the BORROWER
     MilkReceived.objects.create(
         seller=milk_request.from_seller,
         quantity=milk_request.quantity,
         date=date.today(),
-        source='Inter Seller'
+        source='Inter Seller',
+        status='received' # Mark as received immediately
     )
 
     borrow_lend_record = milk_request.borrow_lend_records.first()

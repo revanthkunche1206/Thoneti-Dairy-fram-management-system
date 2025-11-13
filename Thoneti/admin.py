@@ -111,8 +111,8 @@ class DailyOperationsAdmin(admin.ModelAdmin):
 # -------------------------------------------------------
 @admin.register(MilkReceived)
 class MilkReceivedAdmin(admin.ModelAdmin):
-    list_display = ('seller', 'quantity', 'date', 'created_at')
-    list_filter = ('seller', 'date')
+    list_display = ('seller', 'quantity', 'date', 'status', 'source', 'manager', 'created_at')
+    list_filter = ('seller', 'date', 'status', 'source')
     search_fields = ('seller__name',)
     ordering = ('-date',)
 
@@ -153,7 +153,7 @@ class SalaryAdmin(admin.ModelAdmin):
 # -------------------------------------------------------
 @admin.register(DailyTotal)
 class DailyTotalAdmin(admin.ModelAdmin):
-    list_display = ('seller', 'date', 'revenue', 'total_received', 'total_sold')
+    list_display = ('seller', 'date', 'revenue', 'cash_sales', 'online_sales')
     list_filter = ('date',)
     search_fields = ('seller__name',)
     ordering = ('-date',)
@@ -161,9 +161,10 @@ class DailyTotalAdmin(admin.ModelAdmin):
 
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
-    list_display = ('seller', 'date', 'quantity', 'total_amount')
+    list_display = ('seller', 'date', 'customer_name', 'quantity', 'total_amount')
     ordering = ('-date',)
-    search_fields = ('seller__name',)
+    list_filter = ('date', 'seller')
+    search_fields = ('seller__name', 'customer_name')
 
 
 @admin.register(MilkRequest)

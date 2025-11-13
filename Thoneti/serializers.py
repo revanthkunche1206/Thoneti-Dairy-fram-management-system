@@ -285,30 +285,39 @@ class MilkReceivedSerializer(serializers.ModelSerializer):
 
 class DailyTotalSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source='seller.name', read_only=True)
-
     location_name = serializers.CharField(source='seller.location.location_name', read_only=True)
 
     class Meta:
         model = DailyTotal
-        fields = ['total_id', 'seller', 'seller_name', 'date', 'total_received', 'location_name',
-                  'total_sold', 'revenue', 'created_at']
+        fields = ['total_id', 'seller', 'seller_name', 'date', 'cash_sales', 'location_name',
+                  'online_sales', 'revenue', 'created_at']
         read_only_fields = ['total_id', 'created_at']
 
 
 class SaleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sale
-        fields = ['sale_id', 'seller', 'date', 'quantity', 'total_amount', 'created_at']
+        fields = ['sale_id', 'seller', 'date', 'customer_name', 'quantity', 'total_amount', 'created_at']
         read_only_fields = ['sale_id', 'created_at']
+        extra_kwargs = {
+            'seller': {'write_only': True},
+            'total_amount': {'required': False} # We are not using this field for now
+        }
+
+class SaleCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sale
+        fields = ['customer_name', 'quantity', 'date']
 
 
 class MilkRequestSerializer(serializers.ModelSerializer):
     from_seller_name = serializers.CharField(source='from_seller.name', read_only=True)
+    from_seller_location = serializers.CharField(source='from_seller.location.location_name', read_only=True)
     to_seller_name = serializers.CharField(source='to_seller.name', read_only=True)
 
     class Meta:
         model = MilkRequest
-        fields = ['request_id', 'from_seller', 'from_seller_name', 'to_seller',
+        fields = ['request_id', 'from_seller', 'from_seller_name', 'from_seller_location', 'to_seller',
                   'to_seller_name', 'quantity', 'status', 'created_at', 'updated_at']
         read_only_fields = ['request_id', 'created_at', 'updated_at']
 
