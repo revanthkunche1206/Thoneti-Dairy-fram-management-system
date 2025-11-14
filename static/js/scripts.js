@@ -559,7 +559,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       showModal("successModal", "Request accepted! Status changed to On Hold.");
       loadIncomingRequests();
-      loadSellerSummary(); // Refresh summary as our remaining milk has changed
+      loadSellerSummary(); 
     } catch (error) {
       showModal("errorModal", error.message);
     }
@@ -572,15 +572,20 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({}),
       });
       showModal("successModal", "Milk marked as received! Transaction completed.");
+      const dateSelector = document.getElementById('dateSelector');
+      if (dateSelector) {
+          dateSelector.value = getCurrentDate();
+          updateDateInputs();
+      }
       loadMyRequests();
-      loadSellerSummary(); // Refresh summary as our received milk has changed
+      loadSellerSummary();
       loadBorrowLendHistory();
     } catch (error) {
       showModal("errorModal", error.message);
     }
   };
 
-  // --- NEW FUNCTION TO POPULATE THE SALES TABLE ---
+
   function populateTodaySalesTable(sales) {
     const tbody = document.querySelector("#todaySalesTable tbody");
     tbody.innerHTML = "";
