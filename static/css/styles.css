@@ -815,7 +815,8 @@ tr:hover {
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     position: relative;
-    height: 400px; /* Fix for infinite resize */
+    height: 300px; /* Fix for infinite resize */
+    margin-bottom: 20px;
 }
 .chart-container h3 {
     text-align: center;
