@@ -4,118 +4,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dairy Farm Management System</title>
+    <title>Employee Dashboard - Thoneti Dairy</title>
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
-    <div class="page active" id="employeeDashboard">
-        <div class="dashboard">
-                <div class="dashboard-header">
-                    <div>
-                        <h1>Employee Dashboard</h1>
-                        <p style="opacity: 0.9; margin-top: 5px;">Welcome, <span id="employeeName">{{ employee.name }}</span></p>
+
+    <div class="page active">
+        <div class="dashboard-layout">
+            
+            <nav class="sidebar">
+                <div class="sidebar-header">
+                    <h1><span>🐄</span>Thoneti Dairy</h1>
+                </div>
+                <ul class="sidebar-nav">
+                    <li><a href="#" class="active">My Dashboard</a></li>
+                </ul>
+
+                <div class="sidebar-footer">
+                    <div class="user-profile">
+                        <div class="user-avatar" id="employeeAvatar">{{ employee.name|first|upper }}</div>
+                        <div class="user-info">
+                            <h4 id="employeeName">{{ employee.name }}</h4>
+                            <p>Employee</p>
+                        </div>
                     </div>
                     <button class="btn-logout" onclick="logout()">Logout</button>
                 </div>
-            <div class="dashboard-content">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h4>Employee ID</h4>
-                        <div class="value" id="employeeId">{{ employee.employee_id }}</div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Days Worked This Month</h4>
-                        <div class="value" id="daysWorked">0 / 30</div>
-                        <div class="subtext" id="attendancePercent">0%</div>
-                    </div>
-                    <div class="stat-card">
-                        <h4>Base Daily Salary</h4>
-                        <div class="value">₹<span id="baseSalary">0</span></div>
-                    </div>
+            </nav>
+
+            <main class="main-content">
+                <div class="content-header">
+                    <h1>Employee Dashboard</h1>
                 </div>
 
-                <div class="card">
-                    <h3><span class="card-icon">💵</span>Salary Information</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Salary Balance (Based on Attendance)</label>
-                            <div id="salaryBalance" style="font-size: 18px; font-weight: bold; color: #27ae60;"></div>
+                <div class="dashboard-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h4>Employee ID</h4>
+                            <div class="value" id="employeeId">{{ employee.employee_id }}</div>
                         </div>
-                        <div class="form-group">
-                            <label>Deductions (Money Spent)</label>
-                            <div id="totalDeductions" style="font-size: 18px; font-weight: bold; color: #e74c3c;"></div>
+                        <div class="stat-card">
+                            <h4>Days Worked This Month</h4>
+                            <div class="value" id="daysWorked">0 / 30</div>
+                            <div class="subtext" id="attendancePercent">0%</div>
                         </div>
-                        <div class="form-group">
-                            <label>Final Salary (Balance - Deductions)</label>
-                            <div id="finalSalary" style="font-size: 20px; font-weight: bold; color: #667eea;"></div>
+                        <div class="stat-card">
+                            <h4>Base Daily Salary</h4>
+                            <div class="value">₹<span id="baseSalary">0</span></div>
                         </div>
                     </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="attendanceProgress" style="width: 0%;"></div>
+    
+                    <div class="card">
+                        <h3><span class="card-icon">💵</span>Salary Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Salary Balance (Based on Attendance)</label>
+                                <div id="salaryBalance" style="font-size: 18px; font-weight: bold; color: var(--success);"></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Deductions (Money Spent)</label>
+                                <div id="totalDeductions" style="font-size: 18px; font-weight: bold; color: var(--error);"></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Final Salary (Balance - Deductions)</label>
+                                <div id="finalSalary" style="font-size: 20px; font-weight: bold; color: var(--primary);"></div>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="attendanceProgress" style="width: 0%;"></div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="card">
-                    <h3><span class="card-icon">📊</span>Deduction Details</h3>
-                    <div class="table-container">
-                        <table id="deductionTable">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Reason</th>
-                                    <th>Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td colspan="3" style="text-align: center; color: #999;">No deductions recorded</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3><span class="card-icon">📅</span>Attendance Summary</h3>
-                    <button class="btn-primary" onclick="viewAttendanceSummary()">View Attendance Summary</button>
-                    <div id="attendanceSummaryContainer" style="display: none; margin-top: 20px;">
+    
+                    <div class="card">
+                        <h3><span class="card-icon">📊</span>Deduction Details</h3>
                         <div class="table-container">
-                            <table id="attendanceTable">
+                            <table id="deductionTable">
                                 <thead>
                                     <tr>
                                         <th>Date</th>
-                                        <th>Attendance</th>
+                                        <th>Reason</th>
+                                        <th>Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td colspan="2" style="text-align: center; color: #999;">Loading...</td>
+                                        <td colspan="3" style="text-align: center; color: var(--text-muted);">No deductions recorded</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
+    
+                    <div class="card">
+                        <h3><span class="card-icon">📅</span>Attendance Summary</h3>
+                        <button class="btn-secondary" onclick="viewAttendanceSummary()">View Attendance Summary</button>
+                        <div id="attendanceSummaryContainer" style="display: none; margin-top: 20px;">
+                            <div class="table-container">
+                                <table id="attendanceTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Attendance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="2" style="text-align: center; color: var(--text-muted);">Loading...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </main>
         </div>
     </div>
-        <div id="successModal" class="modal">
+
+    <div id="successModal" class="modal">
         <div class="modal-content success">
             <div class="modal-icon">✓</div>
             <h3>Success!</h3>
             <p id="successMessage">Your action was completed successfully.</p>
-            <button onclick="closeModal()" class="btn-primary">OK</button>
+            <button class="btn-primary" onclick="closeModal()">OK</button>
         </div>
     </div>
-
     <div id="errorModal" class="modal">
         <div class="modal-content error">
             <div class="modal-icon">✗</div>
             <h3>Operation Failed</h3>
             <p id="errorMessage">An error occurred. Please try again.</p>
-            <button onclick="closeModal()" class="btn-primary">OK</button>
+            <button class="btn-primary" onclick="closeModal()">OK</button>
         </div>
     </div>
+
     <script src="{% static 'js/scripts.js' %}"></script>
+    <script>
+        // Script for sidebar navigation (minimal for employee)
+        document.addEventListener("DOMContentLoaded", () => {
+            const tab = document.querySelector('.sidebar-nav .tab');
+            tab.addEventListener('click', (e) => e.preventDefault());
+        });
+    </script>
 </body>
 </html>

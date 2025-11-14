@@ -2,63 +2,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dairy Farm Management System</title>
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <meta charset="UTF-R" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Dairy Farm Management System</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
-  <div class="page active" id="loginPage">
-    <div class="login-container" id="loginContainer">
-      <div class="login-header">
-        <h1>🐄 Dairy Farm</h1>
-        <p>Management System Login</p>
-      </div>
 
-      <form id="loginForm">
-        <div class="form-group">
-          <label for="role">Select Role</label>
-          <select id="role" required>
-            <option value="">Choose your role...</option>
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
-            <option value="employee">Employee</option>
-            <option value="seller">Seller</option>
-          </select>
+    <div class="page active login-wrapper">
+        <div class="login-container" id="loginContainer">
+            <div class="login-header">
+                <h1>🐄 Thoneti Dairy</h1>
+                <p>Management System Login</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="role">Select Role</label>
+                    <select id="role" required>
+                        <option value="">Choose your role...</option>
+                        <option value="admin">Admin</option>
+                        <option value="manager">Manager</option>
+                        <option value="employee">Employee</option>
+                        <option value="seller">Seller</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Enter your username" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required />
+                </div>
+
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
         </div>
+    </div>
 
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" placeholder="Enter your username" required />
+    <div id="successModal" class="modal">
+        <div class="modal-content success">
+            <div class="modal-icon">✓</div>
+            <h3>Success!</h3>
+            <p id="successMessage">Your action was completed successfully.</p>
+            <button class="btn-primary" onclick="closeModal()">OK</button>
         </div>
+    </div>
 
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" placeholder="Enter your password" required />
+    <div id="errorModal" class="modal">
+        <div class="modal-content error">
+            <div class="modal-icon">✗</div>
+            <h3>Operation Failed</h3>
+            <p id="errorMessage">An error occurred. Please try again.</p>
+            <button class="btn-primary" onclick="closeModal()">OK</button>
         </div>
-
-        <button type="submit" class="btn-primary">Login</button>
-      </form>
     </div>
-  </div>
 
-  <div id="successModal" class="modal">
-    <div class="modal-content success">
-      <div class="modal-icon">✓</div>
-      <h3>Success!</h3>
-      <p id="successMessage">Your action was completed successfully.</p>
-      <button class="btn-primary" onclick="closeModal()">OK</button>
-    </div>
-  </div>
-
-  <div id="errorModal" class="modal">
-    <div class="modal-content error">
-      <div class="modal-icon">✗</div>
-      <h3>Operation Failed</h3>
-      <p id="errorMessage">An error occurred. Please try again.</p>
-      <button class="btn-primary" onclick="closeModal()">OK</button>
-    </div>
-  </div>
-  <script src="{% static 'js/scripts.js' %}"></script>
+    <script src="{% static 'js/scripts.js' %}"></script>
 </body>
 </html>
