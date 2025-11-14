@@ -252,7 +252,7 @@ def record_milk_distribution(request):
     """Manager records milk sent to sellers."""
     manager = get_object_or_404(Manager, user=request.user)
     milk_date = _parse_date(request.data.get('date'))
-    location_id = request.data.get('locationId')
+    location_id = request.data.get('location_id')
     quantity = Decimal(request.data.get('quantity', 0))
 
     if not location_id:
@@ -487,8 +487,11 @@ def list_locations(request):
             location = serializer.save()
             return Response(LocationSerializer(location).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    return Response(get_location_statistics(), status=status.HTTP_200_OK)
+    
+    selected_date = _parse_date(request.query_params.get('date'))
+    stats = get_location_statistics(selected_date)
 
+    return Response(stats, status=status.HTTP_200_OK) # <-- Pass 'stats' here
 
 @api_view(['GET'])
 def list_sellers(request):
@@ -677,19 +680,22 @@ def mark_as_received(request, request_id):
     milk_request.status = 'received'
     milk_request.save()
 
-    # Create the MilkReceived record for the BORROWER
+    
+    borrow_lend_record = milk_request.borrow_lend_records.first()
+    
+    receipt_date = date.today()
+    if borrow_lend_record:
+        receipt_date = borrow_lend_record.borrow_date 
+        borrow_lend_record.settled = True
+        borrow_lend_record.save()
+
     MilkReceived.objects.create(
         seller=milk_request.from_seller,
         quantity=milk_request.quantity,
-        date=date.today(),
+        date=receipt_date, 
         source='Inter Seller',
-        status='received' # Mark as received immediately
+        status='received'
     )
-
-    borrow_lend_record = milk_request.borrow_lend_records.first()
-    if borrow_lend_record:
-        borrow_lend_record.settled = True
-        borrow_lend_record.save()
 
     message = (
         f"The milk you provided ({milk_request.quantity}L) has been received by "
@@ -699,7 +705,6 @@ def mark_as_received(request, request_id):
     create_notification(milk_request.to_seller.user, message)
 
     return Response({'message': 'Milk marked as received successfully.'}, status=status.HTTP_200_OK)
-
 
 @api_view(['GET'])
 def list_notifications(request):

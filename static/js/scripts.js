@@ -344,6 +344,7 @@ function initGlobalFormListeners() {
     attachFormListener("milkDistributionForm", `${BASE_URL}/manager/milk-distribution/`, "Milk distribution recorded!", () => {
         loadDatewiseData(getSelectedDate());
         loadManagerPendingDistributions();
+        loadLocations();
     }, false, setFormDate);
     attachFormListener("leftoverMilkForm", `${BASE_URL}/manager/leftover-milk/`, "Leftover milk data updated!", () => loadDatewiseData(getSelectedDate()), false, setFormDate);
     attachFormListener("miscExpenseForm", `${BASE_URL}/misc-expenses/`, "Miscellaneous expense saved!", () => loadDatewiseData(getSelectedDate()), false, setFormDate);
@@ -700,7 +701,8 @@ window.viewEmployeeDetails = function(employeeId) {
 
 async function loadLocations() {
     try {
-        const locations = await apiFetch(`${BASE_URL}/manager/locations/`);
+        const selectedDate = getSelectedDate(); // Get the current date from the selector
+        const locations = await apiFetch(`${BASE_URL}/manager/locations/?date=${selectedDate}`);
         populateLocationGrid(locations);
         populateSellerLocationSelect(locations);
     } catch (error) {
@@ -729,7 +731,7 @@ function populateLocationGrid(locations) {
             <h4>${location.location_name}</h4>
             <p><strong>Address:</strong> ${location.address || 'N/A'}</p>
             <p><strong>Sellers:</strong> ${location.seller_count}</p>
-            <p><strong>Milk Today:</strong> ${location.milk_received_today} L</p>
+            <p><strong>Milk (Selected Date):</strong> ${location.milk_received_today} L</p> 
         `;
         grid.appendChild(card);
         totalMilk += parseFloat(location.milk_received_today);

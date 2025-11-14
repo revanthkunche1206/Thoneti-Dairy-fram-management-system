@@ -230,83 +230,101 @@ def get_seller_daily_summary(seller, summary_date=None):
     if summary_date is None:
         summary_date = date.today()
 
-    # 1. Total milk received (from farm AND inter-seller)
+    # 1. Total milk received (from farm AND inter-seller) FOR TODAY
     milk_received_records = MilkReceived.objects.filter(
         seller=seller,
         date=summary_date,
-        status='received'
+        status__in=['received', 'pending']  # Count pending and received
     )
     total_received_today = milk_received_records.aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
     farm_milk = milk_received_records.filter(
-        source='From Farm'
-    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+                source__iexact='From Farm'  # <-- FIX: Changed to __iexact
+            ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
     inter_seller_milk = milk_received_records.filter(
-        source='Inter Seller'
-    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
-
-    # 2. Total milk sold (individual customer sales)
+                source__iexact='Inter Seller' # <-- FIX: Changed to __iexact
+            ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+    # 2. Total milk sold (individual customer sales) FOR TODAY
     total_sold_today = Sale.objects.filter(
         seller=seller,
         date=summary_date
     ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
     
-    # Get all individual sales
+    # Get all individual sales FOR TODAY
     individual_sales = Sale.objects.filter(
         seller=seller,
         date=summary_date
     ).order_by('-created_at')
 
-    # 3. Total milk lent (promised to others, not yet settled)
+    # 3. Total milk lent (promised to others, not yet settled) FOR TODAY
     total_lent_today = BorrowLendRecord.objects.filter(
         lender_seller=seller,
         borrow_date=summary_date,
         settled=False
     ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
-    # 4. Calculate Remaining Milk
-    remaining_milk = total_received_today - total_sold_today - total_lent_today
+    # 4. Calculate TRUE Remaining Milk (ALL TIME)
+    total_in_all_time = (MilkReceived.objects.filter(
+        seller=seller,
+        status__in=['received', 'pending']  # Count all pending and received milk
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00'))
+    
+    total_sold_all_time = (Sale.objects.filter(
+        seller=seller
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00'))
+    
+    total_lent_all_time = (BorrowLendRecord.objects.filter(
+        lender_seller=seller,
+        settled=False  # Only count milk that is currently lent out
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00'))
 
-    # 5. Get financial totals
+    remaining_milk = total_in_all_time - total_sold_all_time - total_lent_all_time
+    # --- END OF ALL-TIME CALCULATION ---
+
+    # 5. Get financial totals FOR TODAY
     daily_total = DailyTotal.objects.filter(seller=seller, date=summary_date).first()
 
+    # 6. Return the complete dictionary
     return {
         'date': summary_date,
-        'total_milk_received': total_received_today,
-        'farm_milk': farm_milk,
-        'inter_seller_milk': inter_seller_milk,
-        'total_milk_sold': total_sold_today,
-        'total_milk_lent': total_lent_today,
-        'remaining_milk': remaining_milk,
+        'total_milk_received': total_received_today,    # Today's summary
+        'farm_milk': farm_milk,                         # Today's summary
+        'inter_seller_milk': inter_seller_milk,         # Today's summary
+        'total_milk_sold': total_sold_today,            # Today's summary
+        'total_milk_lent': total_lent_today,            # Today's summary
+        'remaining_milk': remaining_milk,               # <-- The CORRECT all-time balance
         'revenue': daily_total.revenue if daily_total else Decimal('0.00'),
         'cash_sales': daily_total.cash_sales if daily_total else Decimal('0.00'),
         'online_sales': daily_total.online_sales if daily_total else Decimal('0.00'),
-        'individual_sales': individual_sales # Return the query set
+        'individual_sales': individual_sales            # <-- THIS IS THE MISSING KEY
     }
 
-
-def get_location_statistics():
+def get_location_statistics(selected_date=None):
     stats = []
-    today = date.today()
+    
+    # 2. Set the date to use, defaulting to today
+    if selected_date is None:
+        selected_date = date.today()
 
     for location in Location.objects.all():
         sellers = Seller.objects.filter(location=location, is_active=True)
 
+        # 3. Use 'selected_date' in all your queries instead of 'today'
         total_milk_today = MilkReceived.objects.filter(
             seller__location=location,
-            date=today
+            date=selected_date
         ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
         farm_milk_today = MilkReceived.objects.filter(
             seller__location=location,
-            date=today,
+            date=selected_date,
             source='From Farm'
         ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
         inter_seller_milk_today = MilkReceived.objects.filter(
             seller__location=location,
-            date=today,
+            date=selected_date,
             source='Inter Seller'
         ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
