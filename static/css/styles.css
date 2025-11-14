@@ -422,7 +422,7 @@ body {
 }
 
 .form-group {
-    margin-bottom: 0px;
+    margin-bottom: 20px;
 }
 
 .form-group label {
@@ -595,9 +595,6 @@ tr:hover {
     background: #fafcff;
 }
 
-/* ============================
-   STATS CARDS
-============================ */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -644,9 +641,7 @@ tr:hover {
     color: var(--text-light);
 }
 
-/* ============================
-   LOCATION & REQUEST CARDS
-============================ */
+
 .location-grid, .attendance-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -709,9 +704,7 @@ tr:hover {
 .badge-accepted { background: var(--primary-light); color: var(--primary); }
 .badge-danger { background: #f8d7da; color: #721c24; }
 
-/* ============================
-   ATTENDANCE & PROGRESS
-============================ */
+
 .attendance-row {
     display: flex;
     align-items: center;
