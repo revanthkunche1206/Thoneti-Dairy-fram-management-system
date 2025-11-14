@@ -428,7 +428,7 @@ body {
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    color: #ffffff; /* White label */
+    color: #121010; /* White label */
     font-weight: 600;
     font-size: 14px;
     text-align: left; /* Align labels left */
@@ -445,12 +445,38 @@ select {
     padding: 12px 15px;
     font-size: 15px;
     transition: all 0.2s ease;
-    color: #ffffff; /* White text */
-
-    /* Dark, transparent background */
-    background-color: rgba(0, 0, 0, 0.3);
+    
+    /* --- THIS IS THE FIX --- */
+    color: var(--text-dark); /* Makes your typing dark */
+    background-color: rgba(255, 255, 255, 0.9); /* Light frosted background */
     border: 1px solid rgba(255, 255, 255, 0.3); /* Faint white border */
+    /* --- END FIX --- */
+
     border-radius: var(--border-radius);
+}
+
+/* Style placeholders to be a readable gray */
+input::placeholder {
+    color: var(--text-muted);
+}
+select {
+    color: var(--text-muted); /* For the "Choose your role..." default */
+}
+select:focus {
+     color: var(--text-dark); /* When an option is selected */
+}
+select option {
+    color: #000000; /* For the dropdown list */
+}
+
+/* Update focus ring to match new light inputs */
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    background: var(--bg-white); /* Solid white on focus */
+    border-color: var(--primary); /* Use your green theme color */
+    box-shadow: 0 0 0 3px var(--primary-light); /* Green glow */
 }
 
 /* Style for <select> options */
@@ -458,14 +484,7 @@ select option {
     color: #000000; /* Options in dropdown should be dark */
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-    outline: none;
-    background: rgba(0, 0, 0, 0.5); /* Darker on focus */
-    border-color: var(--accent); /* Use your gold accent color */
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3); /* Accent glow */
-}
+
 
 textarea {
     resize: vertical;
@@ -478,18 +497,23 @@ textarea {
 .btn-primary {
     width: 100%;
     padding: 14px;
-    background: var(--primary); /* <-- FIX: Use solid primary color */
-    color: var(--text-white);
+    background: var(--primary); /* <--- FIX: This is your dark green */
+    color: var(--text-white); /* <--- FIX: This makes the text white */
     border: none;
     border-radius: var(--border-radius);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 10px rgba(44, 90, 65, 0.15); /* Shadow for solid button */
+    box-shadow: 0 4px 10px rgba(44, 90, 65, 0.15);
 }
 .btn-primary:hover {
-    background: var(--primary-dark); /* <-- FIX: Use dark color */
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(44, 90, 65, 0.25);
+}
+.btn-primary:hover {
+    background: var(--primary-dark);
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(44, 90, 65, 0.25);
 }
