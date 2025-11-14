@@ -300,27 +300,31 @@ def get_seller_daily_summary(seller, summary_date=None):
         'individual_sales': individual_sales            # <-- THIS IS THE MISSING KEY
     }
 
-def get_location_statistics():
+def get_location_statistics(selected_date=None):
     stats = []
-    today = date.today()
+    
+    # 2. Set the date to use, defaulting to today
+    if selected_date is None:
+        selected_date = date.today()
 
     for location in Location.objects.all():
         sellers = Seller.objects.filter(location=location, is_active=True)
 
+        # 3. Use 'selected_date' in all your queries instead of 'today'
         total_milk_today = MilkReceived.objects.filter(
             seller__location=location,
-            date=today
+            date=selected_date
         ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
         farm_milk_today = MilkReceived.objects.filter(
             seller__location=location,
-            date=today,
+            date=selected_date,
             source='From Farm'
         ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
         inter_seller_milk_today = MilkReceived.objects.filter(
             seller__location=location,
-            date=today,
+            date=selected_date,
             source='Inter Seller'
         ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
