@@ -1,15 +1,28 @@
+/* ============================
+   DESIGN SYSTEM (v4.1) - ADMIN
+============================ */
 :root {
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --primary-color: #6a66ea;
-    --white: #ffffff;
-    --light-bg: #f8f9fa;
-    --text-dark: #333;
-    --text-light: #777;
-    --border-color: #e0e0e0;
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    --border-radius: 8px;
+    /* 1. Color Palette (Consistent with main app) */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-serif: "Georgia", "Times New Roman", serif;
+    --bg-main: #f9f9f7; /* Very light, warm beige */
+    --bg-content: #ffffff;
+    --border-color: #e9e9e9;
+    --primary: #2c5a41;
+    --primary-dark: #20402f;
+    --primary-light: #eaf3ed;
+    --accent: #d4af37;
+    --text-dark: #1a1a1a;
+    --text-light: #555555;
+    --text-muted: #888888;
+    --text-white: #ffffff;
     --success: #28a745;
     --error: #dc3545;
+    --warning: #ffc107;
+    --shadow: 0 4px 12px rgba(0,0,0,0.06);
+    --shadow-sm: 0 2px 6px rgba(0,0,0,0.04);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.08);
+    --border-radius: 8px;
 }
 
 * {
@@ -19,30 +32,35 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: var(--primary-gradient);
+    font-family: var(--font-sans);
+    background: var(--bg-main);
     color: var(--text-dark);
     padding: 40px 20px;
     min-height: 100vh;
 }
 
-/* --- Main Container --- */
+/* ============================
+   ADMIN CONTAINER
+============================ */
 .admin-container {
     max-width: 1200px;
     margin: 0 auto;
-    background: var(--white);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    background: var(--bg-content);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
     overflow: hidden;
 }
 
-/* --- Header --- */
+/* ============================
+   HEADER
+============================ */
 .admin-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 20px 30px;
-    background: var(--white);
+    background: var(--bg-content);
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -50,6 +68,7 @@ body {
     font-size: 24px;
     color: var(--text-dark);
     margin: 0;
+    font-weight: 600;
 }
 
 .admin-header p {
@@ -58,19 +77,22 @@ body {
     margin: 0;
 }
 
-/* --- Buttons --- */
+/* ============================
+   BUTTONS
+============================ */
 .btn-logout {
-    background: #f1f3f5;
-    color: #555;
-    border: none;
     padding: 10px 20px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-dark);
     border-radius: var(--border-radius);
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: all 0.2s;
 }
 .btn-logout:hover {
     background: #e9ecef;
+    border-color: #adb5bd;
 }
 
 .btn-primary, .btn-secondary, .btn-danger {
@@ -79,65 +101,50 @@ body {
     border-radius: var(--border-radius);
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 16px;
+    transition: all 0.2s ease;
+    font-size: 15px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
 }
 
 .btn-primary {
-    background: var(--primary-gradient);
-    color: var(--white);
+    background: var(--primary);
+    color: var(--text-white);
 }
 .btn-primary:hover {
-    opacity: 0.9;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    background: var(--primary-dark);
+    box-shadow: 0 4px 10px rgba(44, 90, 65, 0.2);
+    transform: translateY(-2px);
 }
 
 .btn-secondary {
-    background: #f1f3f5;
-    color: #555;
+    background: var(--bg-light);
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
 }
 .btn-secondary:hover {
     background: #e9ecef;
 }
 
-/* --- ADD THESE NEW STYLES --- */
 .btn-danger {
-    background: #dc3545;
+    background: var(--error);
     color: var(--white);
 }
 .btn-danger:hover {
     background: #c82333;
-    opacity: 0.9;
 }
 
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 24px;
-}
-.modal-actions .btn-secondary,
-.modal-actions .btn-danger {
-    width: auto;
-}
-.modal-content.warning .modal-icon {
-    background: #ffc107;
-}
-/* --- END OF ADDED STYLES --- */
-
-
-/* --- Admin Content --- */
+/* ============================
+   ADMIN CONTENT
+============================ */
 .admin-content {
     padding: 30px;
 }
 
-/* --- Welcome Card --- */
 .welcome-card {
-    background: #f4f6ff;
-    border: 1px solid #e0e4fc;
+    background: var(--primary-light);
+    border: 1px solid #cce2d6;
     padding: 24px;
     border-radius: var(--border-radius);
     margin-bottom: 30px;
@@ -149,15 +156,18 @@ body {
 }
 .welcome-card p {
     font-size: 16px;
-    color: var(--text-light);
+    color: var(--primary-dark);
 }
 
-/* --- Section Shared --- */
+/* ============================
+   SECTIONS
+============================ */
 .registration-section, .managers-section {
-    background: var(--white);
+    background: var(--bg-content);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     margin-bottom: 30px;
+    box-shadow: var(--shadow);
     overflow: hidden;
 }
 
@@ -167,16 +177,16 @@ body {
     gap: 20px;
     padding: 24px;
     border-bottom: 1px solid var(--border-color);
-    background: var(--light-bg);
+    background: var(--bg-content);
 }
 .section-header .icon-box {
-    font-size: 24px;
-    background: #e0e4fc;
-    color: var(--primary-color);
+    font-size: 20px;
+    background: var(--primary-light);
+    color: var(--primary);
     padding: 16px;
     border-radius: 50%;
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -186,13 +196,16 @@ body {
     font-size: 20px;
     color: var(--text-dark);
     margin-bottom: 5px;
+    font-weight: 600;
 }
 .section-header p {
     font-size: 15px;
     color: var(--text-light);
 }
 
-/* --- Registration Form --- */
+/* ============================
+   REGISTRATION FORM
+============================ */
 .registration-form {
     padding: 30px;
 }
@@ -208,7 +221,7 @@ body {
 .form-group label {
     font-size: 14px;
     font-weight: 600;
-    color: #444;
+    color: var(--text-dark);
     margin-bottom: 8px;
     display: flex;
     align-items: center;
@@ -216,6 +229,7 @@ body {
 }
 .form-group .label-icon {
     font-size: 16px;
+    color: var(--text-light);
 }
 .form-group input[type="text"],
 .form-group input[type="password"] {
@@ -223,16 +237,18 @@ body {
     padding: 12px 14px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    font-size: 16px;
-    transition: border-color 0.3s, box-shadow 0.3s;
+    font-size: 15px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: var(--bg-light);
 }
 .form-group input::placeholder {
     color: #aaa;
 }
 .form-group input:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    border-color: var(--primary);
+    background: var(--bg-white);
+    box-shadow: 0 0 0 3px var(--primary-light);
 }
 .form-group small {
     font-size: 13px;
@@ -249,32 +265,38 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* --- Managers Section --- */
+/* ============================
+   STATS & TABLE
+============================ */
 .stats-card {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     padding: 24px;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
 }
 .stat-item {
     display: flex;
     align-items: center;
     gap: 16px;
-    background: var(--light-bg);
+    background: var(--bg-white);
     padding: 20px;
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 .stat-icon {
     font-size: 24px;
-    background: #e0e4fc;
-    color: var(--primary-color);
+    background: var(--primary-light);
+    color: var(--primary);
     width: 50px;
     height: 50px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 .stat-info .stat-label {
     display: block;
@@ -289,7 +311,6 @@ body {
     color: var(--text-dark);
 }
 
-/* --- Table --- */
 .table-container {
     width: 100%;
     overflow-x: auto;
@@ -306,51 +327,58 @@ body {
     vertical-align: middle;
 }
 #managersTable thead th {
-    background: var(--light-bg);
-    font-size: 13px;
+    background: var(--bg-content);
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-light);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    border-bottom-width: 1px;
 }
 #managersTable tbody tr:last-child td {
     border-bottom: none;
 }
 #managersTable tbody tr:hover {
-    background: #fcfdff;
+    background: var(--bg-light);
 }
 
-/* Status Badge */
 .status {
-    padding: 6px 12px;
+    padding: 5px 12px;
     border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
 }
 .status-active {
-    background: #e6f7ec;
-    color: var(--success);
+    background: var(--primary-light);
+    color: var(--primary);
 }
 .status-inactive {
-    background: #fdeeee;
-    color: var(--error);
+    background: #f8d7da;
+    color: #721c24;
 }
 
-/* Table Actions */
 .action-btn {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 20px;
+    font-size: 18px;
     margin: 0 5px;
-    transition: color 0.3s ease;
+    padding: 5px;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
 }
-.btn-edit { color: var(--primary-color); }
-.btn-edit:hover { color: #5a57c2; }
-.btn-delete { color: var(--error); }
-.btn-delete:hover { color: #b02a37; }
+.btn-edit:hover {
+    color: var(--primary);
+    background-color: var(--primary-light);
+}
+.btn-delete:hover {
+    color: var(--error);
+    background-color: var(--error-bg);
+}
 
-/* No Data Row */
 .no-data {
     text-align: center;
     padding: 60px 0;
@@ -360,6 +388,7 @@ body {
     font-size: 48px;
     display: block;
     margin-bottom: 16px;
+    color: var(--text-muted);
 }
 .no-data-message p {
     font-size: 18px;
@@ -370,9 +399,11 @@ body {
     font-size: 15px;
 }
 
-/* --- Modals --- */
+/* ============================
+   MODALS (ADMIN)
+============================ */
 .modal {
-    display: none; /* Hidden by default */
+    display: none;
     position: fixed;
     z-index: 1000;
     left: 0;
@@ -386,59 +417,37 @@ body {
     opacity: 0;
     transition: opacity 0.3s ease;
 }
-
-.modal.show {
-    display: flex;
-    opacity: 1;
-}
-
+.modal.show { display: flex; opacity: 1; }
 .modal-content {
-    background-color: var(--white);
+    background-color: var(--bg-content);
     margin: auto;
     padding: 30px;
     border-radius: var(--border-radius);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     width: 90%;
-    max-width: 450px;
+    max-width: 400px;
     text-align: center;
     transform: scale(0.9);
     transition: transform 0.3s ease;
 }
-
-.modal.show .modal-content {
-    transform: scale(1);
-}
-
+.modal.show .modal-content { transform: scale(1); }
 .modal-icon {
-    width: 70px;
-    height: 70px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    font-size: 40px;
-    color: var(--white);
+    font-size: 32px;
+    color: var(--text-white);
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 20px;
 }
-
-.modal-content.success .modal-icon {
-    background: var(--success);
-}
-.modal-content.error .modal-icon {
-    background: var(--error);
-}
-
-.modal-content h3 {
-    font-size: 22px;
-    margin-bottom: 12px;
-}
-
-.modal-content p {
-    font-size: 16px;
-    color: var(--text-light);
-    margin-bottom: 24px;
-}
-
-.modal-content .btn-primary {
-    width: 100%;
-}
+.modal-content.success .modal-icon { background: var(--success); }
+.modal-content.error .modal-icon { background: var(--error); }
+.modal-content.warning .modal-icon { background: var(--warning); color: var(--text-dark); }
+.modal-content h3 { font-size: 22px; margin-bottom: 12px; color: var(--text-dark); }
+.modal-content p { font-size: 16px; color: var(--text-light); margin-bottom: 24px; line-height: 1.5; }
+.modal-content .btn-primary { width: 100%; background: var(--primary); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.modal-actions .btn-secondary, .modal-actions .btn-danger { width: auto; }
+.modal-actions .btn-secondary { background: var(--bg-light); color: var(--text-dark); border: 1px solid var(--border-color); }

@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Register Manager</title>
-
+    <title>Admin Panel - Thoneti Dairy</title>
     <link rel="stylesheet" href="{% static 'css/admin.css' %}">
 </head>
 <body>
@@ -13,7 +12,7 @@
         <div class="admin-header">
             <div class="header-content">
                 <h1>🔐 Admin Panel</h1>
-                <p>Dairy Farm Management System</p>
+                <p>Thoneti Dairy Management System</p>
             </div>
             <button class="btn-logout" onclick="logout()">Logout</button>
         </div>
@@ -155,16 +154,7 @@
                             </tr>
                         </thead>
                         <tbody id="managersTableBody">
-                            <tr class="no-data-row">
-                                <td colspan="6" class="no-data">
-                                    <div class="no-data-message">
-                                        <span class="no-data-icon">📭</span>
-                                        <p>No managers registered yet</p>
-                                        <small>Use the form above to register the first manager</small>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
             </div>
@@ -178,7 +168,6 @@
                 <button onclick="closeModal()" class="btn-primary">OK</button>
             </div>
         </div>
-
         <div id="errorModal" class="modal">
             <div class="modal-content error">
                 <div class="modal-icon">✗</div>
@@ -187,8 +176,6 @@
                 <button onclick="closeModal()" class="btn-primary">OK</button>
             </div>
         </div>
-
-        <!-- --- THIS IS THE NEW MODAL --- -->
         <div id="confirmDeleteModal" class="modal">
             <div class="modal-content warning">
                 <div class="modal-icon">!</div>
@@ -204,7 +191,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <script src="{% static 'js/admin.js' %}"></script>
