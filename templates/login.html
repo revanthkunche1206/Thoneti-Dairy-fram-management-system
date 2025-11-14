@@ -4,16 +4,25 @@
 <head>
     <meta charset="UTF-R" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - Dairy Farm Management System</title>
+    <title>Login - Thoneti Dairy Farm</title>
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
 
+    <video autoplay muted loop playsinline id="bg-video">
+        <source src="{% static 'videos/loginVid.mp4' %}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <div class="video-overlay"></div>
+
     <div class="page active login-wrapper">
+        
         <div class="login-container" id="loginContainer">
+            
             <div class="login-header">
-                <h1>🐄 Thoneti Dairy</h1>
-                <p>Management System Login</p>
+                <h1>Welcome to Thoneti Dairy</h1>
+                <p>Experience the new standard in dairy management. Our system provides a seamless, efficient, and modern solution for tracking operations.</p>
             </div>
 
             <form id="loginForm">
@@ -41,6 +50,7 @@
                 <button type="submit" class="btn-primary">Login</button>
             </form>
         </div>
+
     </div>
 
     <div id="successModal" class="modal">
