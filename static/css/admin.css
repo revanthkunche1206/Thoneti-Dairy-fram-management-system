@@ -117,7 +117,11 @@ body {
     box-shadow: 0 4px 10px rgba(44, 90, 65, 0.2);
     transform: translateY(-2px);
 }
-
+.btn-primary:active {
+    background: var(--primary-dark); /* Keep the dark green from hover */
+    transform: translateY(1px); /* Make it look "pressed" */
+    box-shadow: 0 4px 10px rgba(44, 90, 65, 0.15); /* Slightly smaller shadow */
+}
 .btn-secondary {
     background: var(--bg-light);
     color: var(--text-dark);
