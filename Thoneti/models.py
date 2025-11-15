@@ -65,7 +65,7 @@ class Manager(models.Model):
             last_manager = Manager.objects.order_by('-manager_id').first()
             if last_manager and last_manager.manager_id.startswith('manager'):
                 try:
-                    num = int(last_manager.manager_id[7:]) + 1 # 'manager' is 7 chars
+                    num = int(last_manager.manager_id[7:]) + 1 
                     self.manager_id = f'manager{num:03d}'
                 except ValueError:
                     self.manager_id = 'manager001'
@@ -326,7 +326,7 @@ def update_milk_distribution_totals(sender, instance, created, **kwargs):
             date=instance.date,
             defaults={'total_milk': Decimal('0.00')}
         )
-        total_milk = calculate_total_milk_distributed(None)  # Pass None since it's system-wide
+        total_milk = calculate_total_milk_distributed(None)  
         system_dist.total_milk = total_milk
         system_dist.save()
 
@@ -335,8 +335,8 @@ class DailyTotal(models.Model):
     total_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE, related_name='daily_totals')
     date = models.DateField()
-    cash_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0) # Renamed from total_received
-    online_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0) # Renamed from total_sold
+    cash_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    online_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
     revenue = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -352,9 +352,9 @@ class Sale(models.Model):
     sale_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE, related_name='sales')
     date = models.DateField()
-    customer_name = models.CharField(max_length=255, blank=True, null=True) # New field
+    customer_name = models.CharField(max_length=255, blank=True, null=True) 
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2) # This might be deprecated if we use DailyTotal
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

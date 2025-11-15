@@ -81,7 +81,6 @@ class SellerDashboardView(TemplateView):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
-    """Authenticate user and return role-based info."""
     serializer = LoginSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -147,21 +146,18 @@ def logout_view(request):
 
 @api_view(['POST'])
 def create_feed_record(request):
-    """Manager adds or updates feed record."""
     manager = get_object_or_404(Manager, user=request.user)
     op_date = _parse_date(request.data.get('date'))
     daily_ops = get_or_create_daily_operations(manager, op_date)
 
     record_id = request.data.get('recordId')
     if record_id:
-        # Update existing record
         try:
             feed_record = FeedRecord.objects.get(feed_id=record_id, record=daily_ops)
             serializer = FeedRecordSerializer(feed_record, data=request.data, partial=True)
         except FeedRecord.DoesNotExist:
             return Response({'message': 'Feed record not found.'}, status=status.HTTP_404_NOT_FOUND)
     else:
-        # Create new record
         serializer = FeedRecordSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -172,21 +168,18 @@ def create_feed_record(request):
 
 @api_view(['POST'])
 def create_expense_record(request):
-    """Manager adds or updates expense record."""
     manager = get_object_or_404(Manager, user=request.user)
     op_date = _parse_date(request.data.get('date'))
     daily_ops = get_or_create_daily_operations(manager, op_date)
 
     record_id = request.data.get('recordId')
     if record_id:
-        # Update existing record
         try:
             expense_record = ExpenseRecord.objects.get(expense_id=record_id, record=daily_ops)
             serializer = ExpenseRecordSerializer(expense_record, data=request.data, partial=True)
         except ExpenseRecord.DoesNotExist:
             return Response({'message': 'Expense record not found.'}, status=status.HTTP_404_NOT_FOUND)
     else:
-        # Create new record
         serializer = ExpenseRecordSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -197,21 +190,18 @@ def create_expense_record(request):
 
 @api_view(['POST'])
 def create_misc_expense_record(request):
-    """Manager adds or updates miscellaneous expense record."""
     manager = get_object_or_404(Manager, user=request.user)
     op_date = _parse_date(request.data.get('date'))
     daily_ops = get_or_create_daily_operations(manager, op_date)
 
     record_id = request.data.get('recordId')
     if record_id:
-        # Update existing record
         try:
             expense_record = ExpenseRecord.objects.get(expense_id=record_id, record=daily_ops)
             serializer = ExpenseRecordSerializer(expense_record, data=request.data, partial=True)
         except ExpenseRecord.DoesNotExist:
             return Response({'message': 'Expense record not found.'}, status=status.HTTP_404_NOT_FOUND)
     else:
-        # Create new record
         serializer = ExpenseRecordSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -223,21 +213,18 @@ def create_misc_expense_record(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_medicine_record(request):
-    """Manager adds or updates medicine record."""
     manager = get_object_or_404(Manager, user=request.user)
     op_date = _parse_date(request.data.get('date'))
     daily_ops = get_or_create_daily_operations(manager, op_date)
 
     record_id = request.data.get('recordId')
     if record_id:
-        # Update existing record
         try:
             medicine_record = MedicineRecord.objects.get(medicine_id=record_id, record=daily_ops)
             serializer = MedicineRecordSerializer(medicine_record, data=request.data, partial=True)
         except MedicineRecord.DoesNotExist:
             return Response({'message': 'Medicine record not found.'}, status=status.HTTP_404_NOT_FOUND)
     else:
-        # Create new record
         serializer = MedicineRecordSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -249,7 +236,6 @@ def create_medicine_record(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def record_milk_distribution(request):
-    """Manager records milk sent to sellers."""
     manager = get_object_or_404(Manager, user=request.user)
     milk_date = _parse_date(request.data.get('date'))
     location_id = request.data.get('location_id')
@@ -287,7 +273,6 @@ def record_milk_distribution(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def list_pending_distributions(request):
-    """Lists pending milk distributions for the logged-in seller."""
     seller = get_object_or_404(Seller, user=request.user)
     
     records = MilkReceived.objects.filter(
@@ -341,7 +326,6 @@ def list_manager_pending_distributions(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_leftover_milk(request):
-    """Manager updates leftover milk and sales."""
     manager = get_object_or_404(Manager, user=request.user)
     op_date = _parse_date(request.data.get('date'))
     daily_ops = get_or_create_daily_operations(manager, op_date)
@@ -356,7 +340,6 @@ def update_leftover_milk(request):
 
 @api_view(['GET'])
 def get_daily_data(request):
-    """Get existing daily data for a specific date."""
     manager = get_object_or_404(Manager, user=request.user)
     selected_date = _parse_date(request.query_params.get('date'))
 
@@ -380,7 +363,6 @@ def get_daily_data(request):
 @api_view(['POST'])
 @transaction.atomic
 def add_employee(request):
-    """Manager adds new employee (creates both user and employee)."""
     manager = get_object_or_404(Manager, user=request.user)
     data = request.data.copy()
     data['manager_id'] = str(manager.manager_id)
@@ -394,7 +376,6 @@ def add_employee(request):
 
 @api_view(['GET'])
 def list_employees(request):
-    """List all active employees for the logged-in manager."""
     manager = get_object_or_404(Manager, user=request.user)
     employees = Employee.objects.filter(manager=manager, is_active=True)
     return Response(EmployeeSerializer(employees, many=True).data, status=status.HTTP_200_OK)
@@ -402,7 +383,6 @@ def list_employees(request):
 
 @api_view(['POST'])
 def mark_attendance(request):
-    """Manager marks employee attendance."""
     employee_id = request.data.get('employeeId')
     attendance_date = _parse_date(request.data.get('date'))
     status_val = request.data.get('status', 'present')
@@ -421,7 +401,6 @@ def mark_attendance(request):
 @api_view(['POST'])
 @transaction.atomic
 def create_deduction(request):
-    """Manager creates a deduction for an employee."""
     manager = get_object_or_404(Manager, user=request.user)
     employee_id = request.data.get('employeeId')
     amount = Decimal(request.data.get('amount', 0))
@@ -450,7 +429,6 @@ def create_deduction(request):
         reason=reason
     )
 
-    # Recalculate salary after deduction
     calculate_and_update_salary(employee, date.today())
 
     return Response(DeductionSerializer(deduction).data, status=status.HTTP_201_CREATED)
@@ -459,7 +437,6 @@ def create_deduction(request):
 @api_view(['POST'])
 @transaction.atomic
 def add_location_seller(request):
-    """Manager creates new location and seller (with user account)."""
     serializer = LocationSellerCreateSerializer(data=request.data)
     if serializer.is_valid():
         seller = serializer.save()
@@ -470,7 +447,6 @@ def add_location_seller(request):
 @api_view(['POST'])
 @transaction.atomic
 def add_seller(request):
-    """Manager adds new seller to an existing location."""
     serializer = SellerCreateSerializer(data=request.data)
     if serializer.is_valid():
         seller = serializer.save()
@@ -480,7 +456,6 @@ def add_seller(request):
 
 @api_view(['GET', 'POST'])
 def list_locations(request):
-    """Return all locations and their seller stats. POST to create new location."""
     if request.method == 'POST':
         serializer = LocationSerializer(data=request.data)
         if serializer.is_valid():
@@ -491,11 +466,10 @@ def list_locations(request):
     selected_date = _parse_date(request.query_params.get('date'))
     stats = get_location_statistics(selected_date)
 
-    return Response(stats, status=status.HTTP_200_OK) # <-- Pass 'stats' here
+    return Response(stats, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def list_sellers(request):
-    """Return all active sellers with their location info."""
     sellers = Seller.objects.filter(is_active=True).select_related('location')
     data = []
     for seller in sellers:
@@ -510,7 +484,6 @@ def list_sellers(request):
 
 @api_view(['GET'])
 def employee_dashboard(request):
-    """Return salary, attendance and deductions summary."""
     employee = get_object_or_404(Employee, user=request.user)
     data = get_employee_dashboard_data(employee)
     serializer = EmployeeDashboardSerializer(data)
@@ -519,7 +492,6 @@ def employee_dashboard(request):
 
 @api_view(['GET'])
 def get_employee_attendance(request):
-    """Return attendance records for the current month."""
     employee = get_object_or_404(Employee, user=request.user)
     today = date.today()
     attendances = Attendance.objects.filter(
@@ -539,7 +511,6 @@ def get_employee_attendance(request):
 @api_view(['POST'])
 @transaction.atomic
 def record_individual_sale(request):
-    """Seller records an individual sale to a customer."""
     seller = get_object_or_404(Seller, user=request.user)
     serializer = SaleCreateSerializer(data=request.data)
     
@@ -549,7 +520,6 @@ def record_individual_sale(request):
     sales_date = serializer.validated_data.get('date', date.today())
     quantity_sold = serializer.validated_data.get('quantity', Decimal('0.00'))
 
-    # Check for available milk
     summary = get_seller_daily_summary(seller, sales_date)
     available_milk = summary.get('remaining_milk', Decimal('0.00'))
 
@@ -559,7 +529,6 @@ def record_individual_sale(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # total_amount is not really used, so we set it to 0
     Sale.objects.create(
         seller=seller,
         date=sales_date,
@@ -568,7 +537,6 @@ def record_individual_sale(request):
         total_amount=Decimal('0.00') 
     )
 
-    # Return the updated summary
     new_summary = get_seller_daily_summary(seller, sales_date)
     new_summary['individual_sales'] = SaleSerializer(new_summary['individual_sales'], many=True).data
     
@@ -577,7 +545,6 @@ def record_individual_sale(request):
 
 @api_view(['POST'])
 def record_daily_totals(request):
-    """Seller records daily financial totals (cash/online)."""
     seller = get_object_or_404(Seller, user=request.user)
     sales_date = _parse_date(request.data.get('date'))
     cash = Decimal(request.data.get('cashEarned', 0))
@@ -594,12 +561,10 @@ def record_daily_totals(request):
 
 @api_view(['GET'])
 def seller_daily_summary(request):
-    """Seller gets summary for a given date."""
     seller = get_object_or_404(Seller, user=request.user)
     summary_date = _parse_date(request.query_params.get('date'))
     
     summary = get_seller_daily_summary(seller, summary_date)
-    # Serialize the individual_sales QuerySet
     summary['individual_sales'] = SaleSerializer(summary['individual_sales'], many=True).data
     
     return Response(summary, status=status.HTTP_200_OK)
@@ -608,7 +573,6 @@ def seller_daily_summary(request):
 @api_view(['POST'])
 @transaction.atomic
 def create_milk_request(request):
-    """Seller requests milk from other sellers."""
     seller = get_object_or_404(Seller, user=request.user)
     quantity = Decimal(request.data.get('quantity', 0))
     milk_request = MilkRequest.objects.create(from_seller=seller, quantity=quantity, status='pending')
@@ -619,15 +583,12 @@ def create_milk_request(request):
 @api_view(['POST'])
 @transaction.atomic
 def accept_milk_request(request, request_id):
-    """Seller accepts a milk request."""
     seller = get_object_or_404(Seller, user=request.user)
     milk_request = get_object_or_404(MilkRequest, request_id=request_id, status='pending')
     
-    # --- UPDATED VALIDATION LOGIC ---
     today = date.today()
     requested_quantity = milk_request.quantity
 
-    # Get current milk summary using the utility function
     summary = get_seller_daily_summary(seller, today)
     available_milk = summary.get('remaining_milk', Decimal('0.00'))
 
@@ -636,7 +597,6 @@ def accept_milk_request(request, request_id):
             {'message': f'Not enough milk to accept this request. You only have {available_milk}L available.'}, 
             status=status.HTTP_400_BAD_REQUEST
         )
-    # --- END OF UPDATED LOGIC ---
 
     milk_request.to_seller = seller
     milk_request.status = 'on_hold'
@@ -644,7 +604,6 @@ def accept_milk_request(request, request_id):
 
     record = create_borrow_lend_record(milk_request, seller)
 
-    # Notify the requesting seller that their request has been accepted
     message = (
         f"Your milk request for {milk_request.quantity}L has been accepted by "
         f"{seller.name} ({seller.location.location_name}). "
@@ -657,7 +616,6 @@ def accept_milk_request(request, request_id):
 
 @api_view(['GET'])
 def list_incoming_requests(request):
-    """Seller sees all incoming pending milk requests."""
     seller = get_object_or_404(Seller, user=request.user)
     requests = MilkRequest.objects.filter(status='pending').select_related('from_seller', 'from_seller__location').exclude(from_seller=seller)
     return Response(MilkRequestSerializer(requests, many=True).data, status=status.HTTP_200_OK)
@@ -665,7 +623,6 @@ def list_incoming_requests(request):
 
 @api_view(['GET'])
 def list_my_requests(request):
-    """Seller views their outgoing milk requests."""
     seller = get_object_or_404(Seller, user=request.user)
     requests = MilkRequest.objects.filter(from_seller=seller).order_by('-created_at')
     return Response(MilkRequestSerializer(requests, many=True).data, status=status.HTTP_200_OK)
@@ -708,14 +665,12 @@ def mark_as_received(request, request_id):
 
 @api_view(['GET'])
 def list_notifications(request):
-    """List latest notifications for user."""
     notifications = Notification.objects.filter(user=request.user).order_by('-timestamp')[:20]
     return Response(NotificationSerializer(notifications, many=True).data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
 def get_borrow_lend_history(request):
-    """Get borrow/lend history for the logged-in seller."""
     seller = get_object_or_404(Seller, user=request.user)
     borrow_lend_records = BorrowLendRecord.objects.filter(
         Q(borrower_seller=seller) | Q(lender_seller=seller)
@@ -724,11 +679,9 @@ def get_borrow_lend_history(request):
     data = []
     for record in borrow_lend_records:
         if record.borrower_seller == seller:
-            # This seller is the borrower
             other_party = record.lender_seller.name
             transaction_type = "Borrowed"
         else:
-            # This seller is the lender
             other_party = record.borrower_seller.name
             transaction_type = "Lent"
 
@@ -745,7 +698,6 @@ def get_borrow_lend_history(request):
 
 @api_view(['POST'])
 def mark_notification_read(request, notification_id):
-    """Mark notification as read."""
     notif = get_object_or_404(Notification, notification_id=notification_id, user=request.user)
     notif.is_read = True
     notif.save()
@@ -754,14 +706,11 @@ def mark_notification_read(request, notification_id):
 
 @api_view(['GET'])
 def get_datewise_data(request):
-    """Get all data for a specific date."""
     manager = get_object_or_404(Manager, user=request.user)
     selected_date = _parse_date(request.query_params.get('date'))
 
-    # Get or create daily operations for the date
     daily_ops = get_or_create_daily_operations(manager, selected_date)
 
-    # Fetch all related data
     feed_records = FeedRecord.objects.filter(record=daily_ops).select_related('record')
     expense_records = ExpenseRecord.objects.filter(record=daily_ops).select_related('record')
     medicine_records = MedicineRecord.objects.filter(record=daily_ops).select_related('record')
@@ -770,7 +719,6 @@ def get_datewise_data(request):
     daily_totals = DailyTotal.objects.filter(date=selected_date).select_related('seller')
     attendance = Attendance.objects.filter(date=selected_date).select_related('employee')
 
-    # Serialize data
     data = {
         'feed_records': FeedRecordSerializer(feed_records, many=True).data,
         'expense_records': ExpenseRecordSerializer(expense_records, many=True).data,
@@ -787,7 +735,6 @@ def get_datewise_data(request):
 @api_view(['POST'])
 @transaction.atomic
 def add_manager(request):
-    """Admin creates new manager."""
     serializer = ManagerCreateSerializer(data=request.data)
     if serializer.is_valid():
         manager = serializer.save()
@@ -797,41 +744,26 @@ def add_manager(request):
 
 @api_view(['GET'])
 def list_managers(request):
-    """List all managers."""
     managers = Manager.objects.filter(user__is_active=True)
     return Response(ManagerSerializer(managers, many=True).data, status=status.HTTP_200_OK)
 
 
-# --- FIX: Corrected delete_manager view ---
 @api_view(['DELETE'])
 @transaction.atomic
 def delete_manager(request, manager_id):
-    """
-    Admin deletes a manager.
-    
-    --- FIX ---
-    We find the manager, get their associated user, and delete the USER.
-    The on_delete=models.CASCADE on the Manager model's 'user' field
-    will then automatically delete the Manager profile.
-    """
     try:
-        # Use the string manager_id you created (e.g., "manager001")
         manager = get_object_or_404(Manager, manager_id=manager_id)
         
-        # Get the user associated with this manager
         user_to_delete = manager.user
         
-        # Delete the User. The Manager object will be deleted by CASCADE.
         user_to_delete.delete()
         
         return Response({'message': 'Manager and associated user deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
     except Exception as e:
         return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-# --- END OF FIX ---
 
 
 def _parse_date(input_date):
-    """Convert string to date object safely."""
     if not input_date:
         return date.today()
     if isinstance(input_date, date):
@@ -842,10 +774,6 @@ def _parse_date(input_date):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def manager_dashboard_stats(request):
-    """
-    Provides aggregated data for the manager dashboard,
-    covering the last 7 days.
-    """
     try:
         manager = get_object_or_404(Manager, user=request.user)
         today = date.today()
@@ -882,7 +810,6 @@ def manager_dashboard_stats(request):
 
         labels = [(seven_days_ago + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
 
-        # Use the direct MilkReceived query for milk data
         milk_data = {item['date'].strftime('%Y-%m-%d'): item['total_milk'] or 0 for item in all_milk_received}
         sales_data = {item['date'].strftime('%Y-%m-%d'): item['leftover_sales'] or 0 for item in milk_dist}
         expense_data = {item['date'].strftime('%Y-%m-%d'): item['total_expense'] or 0 for item in expenses}
@@ -914,11 +841,9 @@ def manager_dashboard_stats(request):
             ]
         }
 
-        # 4. Get other stats
         total_employees = Employee.objects.filter(manager=manager, is_active=True).count()
         total_locations = Location.objects.count()
 
-        # Get today's stats from our prepared data
         today_str = today.strftime('%Y-%m-%d')
         today_milk = milk_data.get(today_str, 0)
         today_expenses = expense_data.get(today_str, 0)
@@ -937,9 +862,6 @@ def manager_dashboard_stats(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_sales_trend(request):
-    """
-    Returns aggregated sales revenue for the last 30 days.
-    """
     manager = get_object_or_404(Manager, user=request.user)
     
     thirty_days_ago = date.today() - timedelta(days=30)

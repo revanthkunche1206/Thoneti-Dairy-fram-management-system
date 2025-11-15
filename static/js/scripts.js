@@ -1,29 +1,21 @@
-/* ============================
-   DESIGN SYSTEM (v4) - SCRIPT
-   This script matches the new sidebar layout.
-============================ */
-
 const BASE_URL = "/api";
 let locationSalesChart = null;
 let expensePieChart = null;
 let milkUsageChart = null;
 let salesTrendChart = null;
 
-// New color palette for charts
 const CHART_COLORS = [
-    '#2c5a41', /* --primary */
-    '#d4af37', /* --accent */
-    '#6c757d', /* --text-light */
-    '#5a9a6f', /* Lighter Green */
-    '#f7d98e', /* Lighter Gold */
-    '#adb5bd', /* Muted Gray */
+    '#2c5a41',
+    '#d4af37',
+    '#6c757d', 
+    '#5a9a6f', 
+    '#f7d98e', 
+    '#adb5bd', 
     '#8dbf9e',
     '#f9ebc0',
 ];
 
-/* ============================
-   MODALS & HELPERS
-============================ */
+
 
 function showModal(modalId, message) {
     closeModal();
@@ -51,7 +43,6 @@ function getCurrentDate() {
 }
 
 function getSelectedDate() {
-    // Find *either* the manager's or seller's date selector
     const dateSelector = document.getElementById('globalDateSelector') || document.getElementById('dateSelector');
     return dateSelector ? dateSelector.value : getCurrentDate();
 }
@@ -59,7 +50,7 @@ function getSelectedDate() {
 function logout() {
     fetch("/logout/", { method: "POST" }).then(() => {
         sessionStorage.clear();
-        window.location.href = "/"; // Redirect to login
+        window.location.href = "/"; 
     });
 }
 
@@ -103,7 +94,6 @@ async function apiFetch(url, options = {}) {
         console.error("API error:", data);
         let message = 'An unknown server error occurred.';
         if (typeof data === 'object' && data !== null) {
-            // Check for specific validation errors
             if (data.username) message = `Username: ${data.username[0]}`;
             else if (data.password) message = `Password: ${data.password[0]}`;
             else message = Object.values(data).flat().join(' ');
@@ -114,42 +104,33 @@ async function apiFetch(url, options = {}) {
     return data;
 }
 
-/* ============================
-   PAGE INITIALIZATION
-============================ */
+
 
 document.addEventListener("DOMContentLoaded", () => {
     
-    // 1. Handle Login Page
     if (document.getElementById("loginForm")) {
         initLoginPage();
     }
 
-    // 2. Handle ALL Dashboard Pages
     if (document.querySelector('.dashboard-layout')) {
         initSidebarNav();
-        initUserData(); // Populate sidebar profile
+        initUserData(); 
     }
 
-    // 3. Handle Manager Page
     if (document.getElementById('globalDateSelector')) {
         initManagerPage();
     }
 
-    // 4. Handle Seller Page
     if (document.getElementById('dateSelector')) {
         initSellerPage();
     }
     
-    // 5. Handle Employee Page
     if (document.getElementById('employeeId')) {
         initEmployeePage();
     }
 
-    // 6. Attach listeners to all forms that exist
     initGlobalFormListeners();
 
-    // 7. Add listeners for modals
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
@@ -185,7 +166,7 @@ function initLoginPage() {
                 sessionStorage.setItem("role", data.user.role);
                 sessionStorage.setItem("username", data.user.username);
                 sessionStorage.setItem("user_id", data.user.user_id);
-                sessionStorage.setItem("userData", JSON.stringify(data.user)); // Store all user data
+                sessionStorage.setItem("userData", JSON.stringify(data.user)); 
 
                 showModal("successModal", "Login successful! Redirecting...");
 
@@ -213,7 +194,6 @@ function initSidebarNav() {
     const tabs = document.querySelectorAll('.sidebar-nav .tab');
     const tabContents = document.querySelectorAll('.dashboard-content .tab-content');
 
-    // Activate the first tab by default
     if (tabs.length > 0) {
         tabs[0].classList.add('active');
         const firstTabId = tabs[0].getAttribute('href').substring(1);
@@ -227,11 +207,9 @@ function initSidebarNav() {
         tab.addEventListener('click', (e) => {
             e.preventDefault();
             
-            // Update tab active state
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             
-            // Show content
             const targetId = tab.getAttribute('href').substring(1);
             tabContents.forEach(content => {
                 content.classList.remove('active');
@@ -260,7 +238,6 @@ function initUserData() {
             nameElem = document.getElementById("sellerName");
             roleElem = document.getElementById("sellerLocation");
         } else if (role === 'employee') {
-            // Employee data is passed from template, so we skip
             return;
         }
 
@@ -288,20 +265,19 @@ function initManagerPage() {
     dateSelector.value = getCurrentDate();
     
     const loadAllManagerData = (date) => {
-        loadManagerDashboardStats(date); // This will load data for the stat cards and charts
-        loadDatewiseData(date); // This will load data for the "Datewise Data" tab
-        loadDailyDataForDate(date); // This will pre-fill forms in "Daily Data"
+        loadManagerDashboardStats(date);
+        loadDatewiseData(date); 
+        loadDailyDataForDate(date); 
     };
 
     dateSelector.addEventListener("change", () => loadAllManagerData(dateSelector.value));
 
-    // Initial load for all manager data
     loadEmployees();
     loadLocations();
     loadLocationsForMilkDistribution();
     loadManagerPendingDistributions();
-    loadAllManagerData(dateSelector.value); // Load all date-specific data
-    loadSalesTrendChart(); // This one is not date-dependent
+    loadAllManagerData(dateSelector.value); 
+    loadSalesTrendChart(); 
 }
 
 function initSellerPage() {
@@ -315,7 +291,6 @@ function initSellerPage() {
     
     dateSelector.addEventListener('change', loadAllSellerData);
 
-    // Initial load
     loadAllSellerData();
     loadIncomingRequests();
     loadMyRequests();
@@ -326,11 +301,7 @@ function initEmployeePage() {
     loadEmployeeDashboard();
 }
 
-/* ============================
-   GLOBAL FORM LISTENERS
-============================ */
 function initGlobalFormListeners() {
-    // Helper function to auto-fill date
     const setFormDate = (form) => {
         const dateInput = form.querySelector('input[type="hidden"][name="date"]');
         if (dateInput) {
@@ -338,7 +309,6 @@ function initGlobalFormListeners() {
         }
     };
     
-    // Manager Forms
     attachFormListener("feedEntryForm", `${BASE_URL}/manager/feed/`, "Feed entry saved!", () => loadDatewiseData(getSelectedDate()), false, setFormDate);
     attachFormListener("dailyExpenseForm", `${BASE_URL}/manager/expense/`, "Expense saved!", () => loadDatewiseData(getSelectedDate()), false, setFormDate);
     attachFormListener("milkDistributionForm", `${BASE_URL}/manager/milk-distribution/`, "Milk distribution recorded!", () => {
@@ -357,14 +327,12 @@ function initGlobalFormListeners() {
     });
     attachFormListener("addSellerForm", `${BASE_URL}/manager/sellers/add/`, "Seller added!", loadLocations);
 
-    // Seller Forms
     attachFormListener("customerSaleForm", `${BASE_URL}/seller/sale/record/`, "Sale recorded!", (newSummary) => {
-        updateSellerSummaryUI(newSummary); // Special case: API returns new summary
+        updateSellerSummaryUI(newSummary);
     }, true, setFormDate);
     attachFormListener("dailyTotalsForm", `${BASE_URL}/seller/daily-totals/`, "Daily financial totals recorded!", loadSellerSummary, false, setFormDate);
     attachFormListener("milkRequestForm", `${BASE_URL}/seller/milk-request/create/`, "Milk request sent!", loadMyRequests);
 
-    // Auto-calculate revenue for seller
     const dailyTotalsForm = document.getElementById("dailyTotalsForm");
     if (dailyTotalsForm) {
         dailyTotalsForm.addEventListener("input", e => {
@@ -375,7 +343,6 @@ function initGlobalFormListeners() {
     }
 }
 
-// Updated helper for attaching form listeners
 function attachFormListener(formId, url, successMessage, callback, apiReturnsData = false, beforeSubmit = null) {
     const form = document.getElementById(formId);
     if (!form) return;
@@ -383,7 +350,6 @@ function attachFormListener(formId, url, successMessage, callback, apiReturnsDat
     form.addEventListener("submit", async e => {
         e.preventDefault();
         try {
-            // Run any pre-submit logic (like setting the date)
             if (beforeSubmit) {
                 beforeSubmit(form);
             }
@@ -391,7 +357,6 @@ function attachFormListener(formId, url, successMessage, callback, apiReturnsDat
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
             
-            // Clean up field names that don't match API
             if(data.feedType) { data.feed_type = data.feedType; delete data.feedType; }
             if(data.medicineName) { data.medicine_name = data.medicineName; delete data.medicineName; }
             if(data.baseSalary) { data.base_salary = data.baseSalary; delete data.baseSalary; }
@@ -401,7 +366,6 @@ function attachFormListener(formId, url, successMessage, callback, apiReturnsDat
             if(data.locationName) { data.location_name = data.locationName; delete data.locationName; }
             if(data.locationId) { data.location_id = data.locationId; delete data.locationId; }
             
-            // Handle specific fields from your new forms
             if(data.employeeId) { data.employeeId = data.employeeId; }
             if(data.cashEarned) { data.cashEarned = data.cashEarned; }
             if(data.onlineEarned) { data.onlineEarned = data.onlineEarned; }
@@ -415,9 +379,9 @@ function attachFormListener(formId, url, successMessage, callback, apiReturnsDat
             
             if (callback) {
                 if (apiReturnsData) {
-                    callback(response); // Pass API response to callback
+                    callback(response); 
                 } else {
-                    callback(); // Just call the function
+                    callback();
                 }
             }
         } catch (error) {
@@ -427,17 +391,12 @@ function attachFormListener(formId, url, successMessage, callback, apiReturnsDat
 }
 
 
-/* ============================
-   MANAGER DATA LOADING
-============================ */
+
 
 async function loadManagerDashboardStats(selectedDate) {
-    // This function loads the top 4 stat cards AND the charts
     try {
-        // We get ALL data for the selected date
         const data = await apiFetch(`${BASE_URL}/manager/datewise-data/?date=${selectedDate}`);
         
-        // We still need the employee/location counts, which are not date-specific
         const [employees, locations] = await Promise.all([
             apiFetch(`${BASE_URL}/manager/employees/`),
             apiFetch(`${BASE_URL}/manager/locations/`)
@@ -446,7 +405,6 @@ async function loadManagerDashboardStats(selectedDate) {
         document.getElementById("dashTotalEmployees").textContent = employees.length;
         document.getElementById("dashTotalLocations").textContent = locations.length;
 
-        // Calculate totals from date-specific data
         let totalMilk = 0;
         if (data.milk_distribution && data.milk_distribution.length > 0) {
             totalMilk = data.milk_distribution.reduce((acc, dist) => acc + parseFloat(dist.total_milk), 0);
@@ -459,7 +417,6 @@ async function loadManagerDashboardStats(selectedDate) {
         if (data.medicine_records) totalExpenses += data.medicine_records.reduce((acc, med) => acc + parseFloat(med.cost), 0);
         document.getElementById("dashTodayExpenses").textContent = totalExpenses.toFixed(2);
         
-        // Init charts with the new data
         initLocationSalesChart(data.daily_totals);
         initExpensePieChart(data.feed_records, data.expense_records, data.medicine_records);
         initMilkUsageChart(data.milk_distribution);
@@ -501,7 +458,6 @@ async function loadSalesTrendChart() {
 }
 
 async function loadDatewiseData(selectedDate) {
-    // This function populates all the tables in the "Datewise Data" tab
     try {
         const data = await apiFetch(`${BASE_URL}/manager/datewise-data/?date=${selectedDate}`);
         
@@ -536,7 +492,7 @@ function populateTable(tableId, data, fields, headers) {
         fields.forEach(field => {
             const cell = document.createElement("td");
             let value = item[field];
-            if (field.includes('.')) { // Handle nested fields like 'seller.name'
+            if (field.includes('.')) { 
                 value = field.split('.').reduce((o, k) => (o || {})[k], item);
             }
             
@@ -565,7 +521,6 @@ function populateTable(tableId, data, fields, headers) {
 
 
 async function loadDailyDataForDate(selectedDate) {
-    // This populates the forms in the "Daily Data" tab with existing data
     try {
         const data = await apiFetch(`${BASE_URL}/manager/daily-data/?date=${selectedDate}`);
 
@@ -585,7 +540,6 @@ async function loadDailyDataForDate(selectedDate) {
                 if(recordIdInput) recordIdInput.value = record[idField];
                 
                 for (const key in record) {
-                    // Use data-field for mapping API names (e.g., feed_type) to form names (e.g., feedType)
                     const input = formEl.querySelector(`[data-field="${key}"]`);
                     if (input) {
                         input.value = record[key];
@@ -597,11 +551,10 @@ async function loadDailyDataForDate(selectedDate) {
         };
         
         populateForm(document.getElementById("feedEntryForm"), data.feed_records?.[0], 'feed_id');
-        populateForm(document.getElementById("dailyExpenseForm"), data.expense_records?.[0], 'expense_id'); // Assumes first is non-misc
+        populateForm(document.getElementById("dailyExpenseForm"), data.expense_records?.[0], 'expense_id'); 
         populateForm(document.getElementById("medicineForm"), data.medicine_records?.[0], 'medicine_id');
         populateForm(document.getElementById("leftoverMilkForm"), data.milk_distribution?.[0], 'distribution_id');
         
-        // Set dates for forms that are always new
         resetAndSetDate(document.getElementById("miscExpenseForm"));
         resetAndSetDate(document.getElementById("milkDistributionForm"));
         
@@ -639,7 +592,6 @@ function populateEmployeeTable(employees) {
             <td>${employee.name}</td>
             <td>${employee.username}</td>
             <td>₹${employee.base_salary}</td>
-            <td><button class="btn-secondary btn-small" onclick="viewEmployeeDetails('${employee.employee_id}')">View</button></td>
         `;
         tbody.appendChild(row);
     });
@@ -688,20 +640,19 @@ window.markAttendance = async function (employeeId, status) {
         const data = { employeeId, date, status };
         const response = await apiFetch(`${BASE_URL}/manager/attendance/`, { method: "POST", body: JSON.stringify(data) });
         showModal("successModal", response.message || `Attendance marked ${status}`);
-        loadDatewiseData(date); // Refresh datewise table
+        loadDatewiseData(date);
     } catch (error) {
         showModal("errorModal", error.message);
     }
 };
 
 window.viewEmployeeDetails = function(employeeId) {
-    // Placeholder - you can expand this
     showModal("successModal", `Viewing details for employee ${employeeId}.`);
 };
 
 async function loadLocations() {
     try {
-        const selectedDate = getSelectedDate(); // Get the current date from the selector
+        const selectedDate = getSelectedDate(); 
         const locations = await apiFetch(`${BASE_URL}/manager/locations/?date=${selectedDate}`);
         populateLocationGrid(locations);
         populateSellerLocationSelect(locations);
@@ -799,9 +750,6 @@ async function loadManagerPendingDistributions() {
     }
 }
 
-/* ============================
-   SELLER DATA LOADING
-============================ */
 
 function updateSellerSummaryUI(summary) {
     document.getElementById("todayRemainingMilk").textContent = summary.remaining_milk;
@@ -873,7 +821,7 @@ function populateSellerPendingDistributions(records) {
             statusBadge = '<span class="badge badge-pending">Pending</span>';
             actionButton = `<button class="btn-secondary btn-success btn-small" onclick="handleStatusUpdate('${record.receipt_id}', 'received')">Mark as Received</button>
                             <button class="btn-secondary btn-danger btn-small" onclick="handleStatusUpdate('${record.receipt_id}', 'not_received')">Not Received</button>`;
-        } else { // 'not_received'
+        } else { 
             statusBadge = '<span class="badge badge-danger">Not Received</span>';
             actionButton = `<button class="btn-secondary btn-success btn-small" onclick="handleStatusUpdate('${record.receipt_id}', 'received')">Mark as Received</button>`;
         }
@@ -900,8 +848,8 @@ window.handleStatusUpdate = async function(receiptId, newStatus) {
             body: JSON.stringify({ status: newStatus })
         });
         showModal("successModal", `Successfully marked as ${newStatus}!`);
-        loadPendingDistributions(); // Refresh this list
-        loadSellerSummary(); // Refresh the summary stats
+        loadPendingDistributions(); 
+        loadSellerSummary(); 
     } catch (error) {
         showModal("errorModal", "Failed to update status: " + error.message);
     }
@@ -946,7 +894,7 @@ window.acceptRequest = async function (requestId) {
         });
         showModal("successModal", "Request accepted! Status changed to On Hold.");
         loadIncomingRequests();
-        loadSellerSummary(); // Refresh summary as our remaining milk has changed
+        loadSellerSummary(); 
     } catch (error) {
         showModal("errorModal", error.message);
     }
@@ -1006,7 +954,7 @@ window.markAsReceived = async function (requestId) {
         });
         showModal("successModal", "Milk marked as received! Transaction completed.");
         loadMyRequests();
-        loadSellerSummary(); // Refresh summary as our received milk has changed
+        loadSellerSummary(); 
         loadBorrowLendHistory();
     } catch (error) {
         showModal("errorModal", error.message);
@@ -1045,9 +993,6 @@ function populateBorrowLendTable(history) {
 }
 
 
-/* ============================
-   EMPLOYEE DATA LOADING
-============================ */
 
 async function loadEmployeeDashboard() {
     try {
@@ -1116,9 +1061,7 @@ window.viewAttendanceSummary = async function() {
     }
 };
 
-/* ============================
-   CHART FUNCTIONS
-============================ */
+
 
 function initLocationSalesChart(dailyTotals) {
     const ctx = document.getElementById('locationSalesChart')?.getContext('2d');
@@ -1142,8 +1085,8 @@ function initLocationSalesChart(dailyTotals) {
             datasets: [{
                 label: 'Total Revenue (₹)',
                 data: data,
-                backgroundColor: '#eaf3ed', // <-- FIX
-                borderColor: '#2c5a41',       // <-- FIX
+                backgroundColor: '#eaf3ed',
+                borderColor: '#2c5a41',     
                 borderWidth: 1,
                 borderRadius: 4
             }]
@@ -1202,7 +1145,7 @@ function initMilkUsageChart(milkDistribution) {
             labels: ['Milk Distributed', 'Milk Leftover'],
             datasets: [{
                 data: [distributedMilk, leftoverMilk],
-                backgroundColor: ['#2c5a41', '#e9e9e9'], // <-- FIX
+                backgroundColor: ['#2c5a41', '#e9e9e9'], 
                 borderWidth: 0
             }]
         },

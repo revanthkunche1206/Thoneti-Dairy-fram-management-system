@@ -87,9 +87,7 @@ class ManagerCreateSerializer(serializers.Serializer):
                 'username': ['A user with this username already exists.']
             })
         except Exception as e:
-            # Catch any other unexpected errors
             raise serializers.ValidationError({'detail': str(e)})
-        # --- END OF FIX ---
 
 
 class EmployeeSerializer(serializers.ModelSerializer):

@@ -167,14 +167,13 @@ function populateManagersTable(managers) {
             <td>
                 <button class="action-btn btn-edit" title="Edit Manager">✏️</button>
                 
-                <!-- --- MODIFIED THIS BUTTON --- -->
+                
                 <button class="action-btn btn-delete" 
                         title="Delete Manager"
                         data-id="${manager.manager_id}"
                         data-name="${manager.name}">
                     🗑️
                 </button>
-                <!-- --- END OF MODIFICATION --- -->
             </td>
         `;
         tbody.appendChild(row);

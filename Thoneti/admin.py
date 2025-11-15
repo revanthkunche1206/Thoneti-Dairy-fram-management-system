@@ -8,9 +8,6 @@ from .models import (
 )
 
 
-# -------------------------------------------------------
-# User Admin
-# -------------------------------------------------------
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     list_display = ('username', 'role', 'is_active', 'is_admin', 'created_at')
@@ -30,18 +27,14 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
-# -------------------------------------------------------
-# Manager Admin
-# -------------------------------------------------------
+
 @admin.register(Manager)
 class ManagerAdmin(admin.ModelAdmin):
     list_display = ('name', 'user', 'created_at')
     search_fields = ('name', 'user__username')
 
 
-# -------------------------------------------------------
-# Employee Admin
-# -------------------------------------------------------
+
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = ('name', 'manager', 'base_salary', 'is_active', 'created_at')
@@ -50,9 +43,6 @@ class EmployeeAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
 
 
-# -------------------------------------------------------
-# Seller Admin
-# -------------------------------------------------------
 @admin.register(Seller)
 class SellerAdmin(admin.ModelAdmin):
     list_display = ('name', 'location', 'is_active', 'created_at')
@@ -61,18 +51,12 @@ class SellerAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
 
 
-# -------------------------------------------------------
-# Admin Profile
-# -------------------------------------------------------
 @admin.register(Admin)
 class AdminProfileAdmin(admin.ModelAdmin):
     list_display = ('name', 'user', 'created_at')
     search_fields = ('name', 'user__username')
 
 
-# -------------------------------------------------------
-# Location Admin
-# -------------------------------------------------------
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
     list_display = ('location_name', 'address', 'created_at')
@@ -80,9 +64,7 @@ class LocationAdmin(admin.ModelAdmin):
     ordering = ('location_name',)
 
 
-# -------------------------------------------------------
-# Daily Operations and Related Records
-# -------------------------------------------------------
+
 class FeedRecordInline(admin.TabularInline):
     model = FeedRecord
     extra = 0
@@ -106,9 +88,7 @@ class DailyOperationsAdmin(admin.ModelAdmin):
     search_fields = ('manager__name',)
 
 
-# -------------------------------------------------------
-# Milk & Distribution
-# -------------------------------------------------------
+
 @admin.register(MilkReceived)
 class MilkReceivedAdmin(admin.ModelAdmin):
     list_display = ('seller', 'quantity', 'date', 'status', 'source', 'manager', 'created_at')
@@ -124,9 +104,7 @@ class MilkDistributionAdmin(admin.ModelAdmin):
     list_filter = ('date',)
 
 
-# -------------------------------------------------------
-# Attendance & Salary
-# -------------------------------------------------------
+
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
     list_display = ('employee', 'date', 'status', 'created_at')
@@ -148,9 +126,6 @@ class SalaryAdmin(admin.ModelAdmin):
     inlines = [DeductionInline]
 
 
-# -------------------------------------------------------
-# Seller Sales, Requests & Borrow/Lend
-# -------------------------------------------------------
 @admin.register(DailyTotal)
 class DailyTotalAdmin(admin.ModelAdmin):
     list_display = ('seller', 'date', 'revenue', 'cash_sales', 'online_sales')
@@ -181,9 +156,7 @@ class BorrowLendRecordAdmin(admin.ModelAdmin):
     search_fields = ('borrower_seller__name', 'lender_seller__name')
 
 
-# -------------------------------------------------------
-# Notifications
-# -------------------------------------------------------
+
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ('user', 'message', 'timestamp', 'is_read')

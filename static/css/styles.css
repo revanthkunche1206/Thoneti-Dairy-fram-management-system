@@ -107,21 +107,19 @@ body {
     font-size: 48px; 
     margin-bottom: 15px;
     font-weight: 500;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5); /* Shadow for readability */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .login-header p {
-    color: #eeeeee; /* Off-white */
+    color: #eeeeee; 
     font-size: 16px;
     line-height: 1.6;
-    max-width: 450px; /* Keep subtitle from getting too wide */
+    max-width: 450px; 
     margin: 0 auto 30px;
     text-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 
-/* ============================
-   NEW DASHBOARD LAYOUT
-============================ */
+
 .dashboard-layout {
     display: flex;
     min-height: 100vh;
@@ -154,7 +152,7 @@ body {
     text-align: center;
     font-weight: 500;
 }
-.sidebar-header h1 span { /* Cow Emoji */
+.sidebar-header h1 span { 
     margin-right: 8px;
 }
 
@@ -249,11 +247,9 @@ body {
     border-color: #d1d9e0;
 }
 
-/* ============================
-   MAIN CONTENT AREA
-============================ */
+
 .main-content {
-    margin-left: 260px; /* Same as sidebar width */
+    margin-left: 260px;
     width: calc(100% - 260px);
     padding: 30px;
 }
@@ -300,9 +296,7 @@ body {
     color: var(--text-dark);
 }
 
-/* ============================
-   TABS
-============================ */
+
 .tabs {
     display: flex;
     border-bottom: 1px solid var(--border-color);
@@ -351,9 +345,7 @@ body {
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
-/* ============================
-   CARDS
-============================ */
+
 .card {
     background: var(--bg-content);
     border-radius: var(--border-radius);
@@ -401,10 +393,10 @@ body {
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    color: #121010; /* White label */
+    color: #121010; 
     font-weight: 600;
     font-size: 14px;
-    text-align: left; /* Align labels left */
+    text-align: left; 
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
@@ -418,38 +410,33 @@ select {
     padding: 12px 15px;
     font-size: 15px;
     transition: all 0.2s ease;
-    
-    /* --- THIS IS THE FIX --- */
-    color: var(--text-dark); /* Makes your typing dark */
-    background-color: rgba(255, 255, 255, 0.9); /* Light frosted background */
-    border: 1px solid rgba(255, 255, 255, 0.3); /* Faint white border */
-    /* --- END FIX --- */
+    color: var(--text-dark); 
+    background-color: rgba(255, 255, 255, 0.9); 
+    border: 1px solid rgba(255, 255, 255, 0.3);
 
     border-radius: var(--border-radius);
 }
 
-/* Style placeholders to be a readable gray */
 input::placeholder {
     color: var(--text-muted);
 }
 select {
-    color: var(--text-muted); /* For the "Choose your role..." default */
+    color: var(--text-muted); 
 }
 select:focus {
-     color: var(--text-dark); /* When an option is selected */
+     color: var(--text-dark); 
 }
 select option {
-    color: #000000; /* For the dropdown list */
+    color: #000000; 
 }
 
-/* Update focus ring to match new light inputs */
 input:focus,
 textarea:focus,
 select:focus {
     outline: none;
-    background: var(--bg-white); /* Solid white on focus */
-    border-color: var(--primary); /* Use your green theme color */
-    box-shadow: 0 0 0 3px var(--primary-light); /* Green glow */
+    background: var(--bg-white); 
+    border-color: var(--primary); 
+    box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 
@@ -458,14 +445,12 @@ textarea {
     min-height: 100px;
 }
 
-/* ============================
-   BUTTONS (GLOBAL)
-============================ */
+
 .btn-primary {
     width: 100%;
     padding: 14px;
-    background: var(--primary); /* <--- FIX: This is your dark green */
-    color: var(--text-white); /* <--- FIX: This makes the text white */
+    background: var(--primary); 
+    color: var(--text-white); 
     border: none;
     border-radius: var(--border-radius);
     font-size: 16px;
@@ -515,9 +500,6 @@ textarea {
     font-size: 13px;
 }
 
-/* ============================
-   TABLES
-============================ */
 .table-container {
     overflow-x: auto;
     margin-top: 20px;
@@ -707,9 +689,7 @@ tr:hover {
     border-radius: 4px;
 }
 
-/* ============================
-   MODALS
-============================ */
+
 .modal {
     display: none;
     position: fixed;
@@ -760,13 +740,11 @@ tr:hover {
 .modal-actions .btn-secondary, .modal-actions .btn-danger { width: auto; }
 .modal-actions .btn-secondary { background: var(--bg-light); color: var(--text-dark); border: 1px solid var(--border-color); }
 
-/* ============================
-   CHARTS
-============================ */
+
 .chart-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px; /* <-- FIX FOR CHART COLLISION */
+    gap: 20px; 
 }
 .chart-container {
     padding: 20px;
@@ -776,7 +754,7 @@ tr:hover {
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     position: relative;
-    height: 300px; /* Fix for infinite resize */
+    height: 300px; 
     margin-bottom: 20px;
 }
 .chart-container h3 {
@@ -787,9 +765,7 @@ tr:hover {
     font-weight: 600;
 }
 
-/* ============================
-   RESPONSIVE
-============================ */
+
 @media (max-width: 1200px) {
     .sidebar {
         width: 220px;
@@ -805,7 +781,6 @@ tr:hover {
         position: fixed;
         z-index: 1000;
         transition: transform 0.3s ease;
-        /* A "menu" button would add a class 'is-open' to the sidebar */
     }
     .sidebar.is-open {
         transform: translateX(0);
@@ -855,9 +830,7 @@ tr:hover {
     .attendance-row { flex-direction: column; align-items: flex-start; gap: 15px; }
 }
 
-/* ============================
-   VIDEO BACKGROUND (LOGIN)
-============================ */
+
 
 #bg-video {
     position: fixed;
@@ -867,7 +840,7 @@ tr:hover {
     min-height: 100%;
     width: auto;
     height: auto;
-    z-index: -2; /* Behind the overlay */
+    z-index: -2; 
     object-fit: cover;
 }
 
@@ -877,7 +850,6 @@ tr:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    /* Dark overlay (60% black) */
     background-color: rgba(0, 0, 0, 0.6);
-    z-index: -1; /* On top of video, behind content */
+    z-index: -1; 
 }
