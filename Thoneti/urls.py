@@ -7,8 +7,6 @@ urlpatterns = [
     path('manager/', views.ManagerDashboardView.as_view(), name='manager-dashboard'),
     path('employee/', views.EmployeeDashboardView.as_view(), name='employee-dashboard'),
     path('seller/', views.SellerDashboardView.as_view(), name='seller-dashboard'),
-
-
     path('api/login/', views.login_view, name='api-login'),
     path('api/logout/', views.logout_view, name='api-logout'),
     path('api/manager/feed/', views.create_feed_record, name='create-feed-record'),
@@ -28,10 +26,8 @@ urlpatterns = [
     path('api/manager/sellers/', views.list_sellers, name='list-sellers'),
     path('api/employee/dashboard/', views.employee_dashboard, name='employee-dashboard'),
     path('api/employee/attendance/', views.get_employee_attendance, name='get-employee-attendance'),
-    
-    # Seller URLs
-    path('api/seller/daily-totals/', views.record_daily_totals, name='record-daily-totals'), # Renamed
-    path('api/seller/sale/record/', views.record_individual_sale, name='record-individual-sale'), # New
+    path('api/seller/daily-totals/', views.record_daily_totals, name='record-daily-totals'), 
+    path('api/seller/sale/record/', views.record_individual_sale, name='record-individual-sale'),
     path('api/seller/summary/', views.seller_daily_summary, name='seller-daily-summary'),
     path('api/seller/milk-request/create/', views.create_milk_request, name='create-milk-request'),
     path('api/seller/milk-request/<uuid:request_id>/accept/', views.accept_milk_request, name='accept-milk-request'),
@@ -43,13 +39,9 @@ urlpatterns = [
     path('api/seller/borrow-lend-history/', views.get_borrow_lend_history, name='borrow-lend-history'),
     path('api/seller/pending-distributions/', views.list_pending_distributions, name='list-pending-distributions'),
     path('api/seller/milk-received/<uuid:receipt_id>/update-status/', views.update_milk_received_status, name='update-milk-received-status'),
-
-    # Manager Data URLs
     path('api/manager/datewise-data/', views.get_datewise_data, name='get-datewise-data'),
     path('api/manager/daily-data/', views.get_daily_data, name='get-daily-data'),
     path('api/manager/sales-trend/', views.get_sales_trend, name='get-sales-trend'),
-    
-    # Admin URLs
     path('api/admin/managers/add/', views.add_manager, name='add-manager'),
     path('api/admin/managers/', views.list_managers, name='list-managers'),
     path('api/admin/managers/<str:manager_id>/delete/', views.delete_manager, name='delete-manager'),

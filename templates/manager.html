@@ -458,42 +458,5 @@
     </div>
 
     <script src="{% static 'js/scripts.js' %}"></script>
-    <!-- <script>
-        // Small script to set manager name in sidebar
-        document.addEventListener("DOMContentLoaded", () => {
-            try {
-                const userData = JSON.parse(sessionStorage.getItem("userData"));
-                if (userData && userData.name) {
-                    document.getElementById("managerName").textContent = userData.name;
-                    document.getElementById("managerAvatar").textContent = userData.name.charAt(0).toUpperCase();
-                }
-            } catch (e) {
-                console.error("Could not parse user data from session storage");
-            }
-
-            // Script for sidebar navigation
-            const tabs = document.querySelectorAll('.sidebar-nav .tab');
-            const tabContents = document.querySelectorAll('.dashboard-content .tab-content');
-
-            tabs.forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    
-                    // Update tab active state
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    
-                    // Show content
-                    const targetId = tab.getAttribute('href').substring(1);
-                    tabContents.forEach(content => {
-                        content.classList.remove('active');
-                        if (content.id === targetId) {
-                            content.classList.add('active');
-                        }
-                    });
-                });
-            });
-        });
-    </script> -->
 </body>
 </html>
