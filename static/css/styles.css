@@ -452,12 +452,6 @@ select:focus {
     box-shadow: 0 0 0 3px var(--primary-light); /* Green glow */
 }
 
-/* Style for <select> options */
-select option {
-    color: #000000; /* Options in dropdown should be dark */
-}
-
-
 
 textarea {
     resize: vertical;
@@ -485,11 +479,12 @@ textarea {
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(44, 90, 65, 0.25);
 }
-.btn-primary:hover {
+.btn-primary:active {
     background: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(44, 90, 65, 0.25);
+    transform: translateY(1px);
+    box-shadow: 0 4px 10px rgba(44, 90, 65, 0.15);
 }
+
 
 .btn-secondary,
 .btn-danger,
@@ -781,7 +776,8 @@ tr:hover {
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     position: relative;
-    height: 400px; /* Fix for infinite resize */
+    height: 300px; /* Fix for infinite resize */
+    margin-bottom: 20px;
 }
 .chart-container h3 {
     text-align: center;
