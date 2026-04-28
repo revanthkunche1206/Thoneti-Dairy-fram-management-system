@@ -1,0 +1,21 @@
+{
+  "name": "Thoneti Dairy Management",
+  "short_name": "Thoneti Dairy",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2c3e50",
+  "description": "Seamless, efficient, and modern solution for tracking dairy farm operations.",
+  "icons": [
+    {
+      "src": "icons/thoneti-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/thoneti-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
