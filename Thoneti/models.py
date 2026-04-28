@@ -326,7 +326,7 @@ def update_milk_distribution_totals(sender, instance, created, **kwargs):
             date=instance.date,
             defaults={'total_milk': Decimal('0.00')}
         )
-        total_milk = calculate_total_milk_distributed(None)  
+        total_milk = calculate_total_milk_distributed(instance.date)  
         system_dist.total_milk = total_milk
         system_dist.save()
 

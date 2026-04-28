@@ -251,7 +251,7 @@ def record_milk_distribution(request):
     if seller_count == 0:
         return Response({'message': 'No active sellers in this location.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    quantity_per_seller = quantity / seller_count
+    quantity_per_seller = (quantity / Decimal(str(seller_count))).quantize(Decimal('0.00'))
     
     notification_message = f"You have a pending milk delivery of {quantity_per_seller:.2f}L from your manager for {milk_date}."
 
@@ -305,9 +305,7 @@ def update_milk_received_status(request, receipt_id):
         create_notification(record.manager.user, message)
 
         if new_status == 'received':
-            from .utils import update_milk_distribution_totals
-            daily_ops = get_or_create_daily_operations(record.manager, record.date)
-            update_milk_distribution_totals(daily_ops)
+            pass # Removed redundant calculation
 
     return Response({'message': f'Status updated to {new_status}.'}, status=status.HTTP_200_OK)
 
@@ -406,11 +404,15 @@ def create_deduction(request):
     amount = Decimal(request.data.get('amount', 0))
     reason = request.data.get('reason')
 
-    if not employee_id or not amount or not reason:
+    if not employee_id or amount is None or not reason:
         return Response({'message': 'Employee ID, amount, and reason are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+    if amount < 0:
+        return Response({'message': 'Amount cannot be negative.'}, status=status.HTTP_400_BAD_REQUEST)
+
     employee = get_object_or_404(Employee, employee_id=employee_id, manager=manager)
-    current_month = date.today().strftime('%Y-%m')
+    deduction_date = _parse_date(request.data.get('date'))
+    current_month = deduction_date.strftime('%Y-%m')
 
     salary, _ = Salary.objects.get_or_create(
         employee=employee,
@@ -429,7 +431,7 @@ def create_deduction(request):
         reason=reason
     )
 
-    calculate_and_update_salary(employee, date.today())
+    calculate_and_update_salary(employee, deduction_date)
 
     return Response(DeductionSerializer(deduction).data, status=status.HTTP_201_CREATED)
 
@@ -493,7 +495,7 @@ def employee_dashboard(request):
 @api_view(['GET'])
 def get_employee_attendance(request):
     employee = get_object_or_404(Employee, user=request.user)
-    today = date.today()
+    today = timezone.localdate()
     attendances = Attendance.objects.filter(
         employee=employee,
         date__year=today.year,
@@ -517,8 +519,11 @@ def record_individual_sale(request):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    sales_date = serializer.validated_data.get('date', date.today())
+    sales_date = serializer.validated_data.get('date', timezone.localdate())
     quantity_sold = serializer.validated_data.get('quantity', Decimal('0.00'))
+
+    if quantity_sold < 0:
+        return Response({'message': 'Quantity cannot be negative.'}, status=status.HTTP_400_BAD_REQUEST)
 
     summary = get_seller_daily_summary(seller, sales_date)
     available_milk = summary.get('remaining_milk', Decimal('0.00'))
@@ -575,6 +580,8 @@ def seller_daily_summary(request):
 def create_milk_request(request):
     seller = get_object_or_404(Seller, user=request.user)
     quantity = Decimal(request.data.get('quantity', 0))
+    if quantity < 0:
+        return Response({'message': 'Quantity cannot be negative.'}, status=status.HTTP_400_BAD_REQUEST)
     milk_request = MilkRequest.objects.create(from_seller=seller, quantity=quantity, status='pending')
     notify_all_sellers_about_request(milk_request)
     return Response(MilkRequestSerializer(milk_request).data, status=status.HTTP_201_CREATED)
@@ -586,7 +593,7 @@ def accept_milk_request(request, request_id):
     seller = get_object_or_404(Seller, user=request.user)
     milk_request = get_object_or_404(MilkRequest, request_id=request_id, status='pending')
     
-    today = date.today()
+    today = timezone.localdate()
     requested_quantity = milk_request.quantity
 
     summary = get_seller_daily_summary(seller, today)
@@ -640,7 +647,7 @@ def mark_as_received(request, request_id):
     
     borrow_lend_record = milk_request.borrow_lend_records.first()
     
-    receipt_date = date.today()
+    receipt_date = timezone.localdate()
     if borrow_lend_record:
         receipt_date = borrow_lend_record.borrow_date 
         borrow_lend_record.settled = True
@@ -765,7 +772,7 @@ def delete_manager(request, manager_id):
 
 def _parse_date(input_date):
     if not input_date:
-        return date.today()
+        return timezone.localdate()
     if isinstance(input_date, date):
         return input_date
     return datetime.strptime(input_date, '%Y-%m-%d').date()
@@ -776,7 +783,7 @@ def _parse_date(input_date):
 def manager_dashboard_stats(request):
     try:
         manager = get_object_or_404(Manager, user=request.user)
-        today = date.today()
+        today = timezone.localdate()
         seven_days_ago = today - timedelta(days=6)
 
 
@@ -864,7 +871,7 @@ def manager_dashboard_stats(request):
 def get_sales_trend(request):
     manager = get_object_or_404(Manager, user=request.user)
     
-    thirty_days_ago = date.today() - timedelta(days=30)
+    thirty_days_ago = timezone.localdate() - timedelta(days=30)
     
     sales_data = DailyTotal.objects.filter(
         date__gte=thirty_days_ago

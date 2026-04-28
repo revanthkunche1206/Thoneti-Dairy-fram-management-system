@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import Sum, Count, Q
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from .models import (
     DailyOperations, Salary, Attendance, MilkReceived, 
     MilkDistribution, Deduction, Notification, Seller, 
@@ -13,7 +14,7 @@ from calendar import monthrange
 
 def get_or_create_daily_operations(manager, operation_date=None):
     if operation_date is None:
-        operation_date = date.today()
+        operation_date = timezone.localdate()
 
     daily_ops, created = DailyOperations.objects.get_or_create(
         manager=manager,
@@ -88,16 +89,16 @@ def calculate_and_update_salary(employee, attendance_date):
     return salary
 
 
-def calculate_total_milk_distributed(daily_operations=None):
-    if daily_operations:
-        return MilkReceived.objects.filter(
-            date=daily_operations.date
-        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
-    else:
-        from datetime import date
-        return MilkReceived.objects.filter(
-            date=date.today()
-        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
+def calculate_total_milk_distributed(date_or_ops=None):
+    target_date = timezone.localdate()
+    if hasattr(date_or_ops, 'date'):
+        target_date = date_or_ops.date
+    elif isinstance(date_or_ops, date):
+        target_date = date_or_ops
+
+    return MilkReceived.objects.filter(
+        date=target_date
+    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0.00')
 
 
 def update_milk_distribution_totals(daily_operations):
@@ -121,7 +122,7 @@ def update_milk_distribution_totals(daily_operations):
 
 
 def get_employee_dashboard_data(employee):
-    today = date.today()
+    today = timezone.localdate()
     current_month = today.strftime('%Y-%m')
     total_days = monthrange(today.year, today.month)[1]
 
@@ -188,7 +189,7 @@ def create_borrow_lend_record(milk_request, accepting_seller):
         borrower_seller=milk_request.from_seller,
         lender_seller=accepting_seller,
         quantity=milk_request.quantity,
-        borrow_date=date.today(),
+        borrow_date=timezone.localdate(),
         settled=False,
         request=milk_request
     )
@@ -203,7 +204,7 @@ def create_borrow_lend_record(milk_request, accepting_seller):
 
 
 def validate_attendance_date(attendance_date):
-    if attendance_date > date.today():
+    if attendance_date > timezone.localdate():
         raise ValidationError("Cannot mark attendance for future dates.")
     return True
 
@@ -227,7 +228,7 @@ def get_monthly_attendance_summary(employee, year, month):
 
 def get_seller_daily_summary(seller, summary_date=None):
     if summary_date is None:
-        summary_date = date.today()
+        summary_date = timezone.localdate()
 
     milk_received_records = MilkReceived.objects.filter(
         seller=seller,
@@ -295,7 +296,7 @@ def get_location_statistics(selected_date=None):
     stats = []
     
     if selected_date is None:
-        selected_date = date.today()
+        selected_date = timezone.localdate()
 
     for location in Location.objects.all():
         sellers = Seller.objects.filter(location=location, is_active=True)

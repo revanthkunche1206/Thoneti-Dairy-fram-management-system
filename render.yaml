@@ -1,0 +1,38 @@
+databases:
+  - name: thoneti-db
+    databaseName: thoneti
+    user: thoneti_user
+    plan: free
+
+services:
+  - type: web
+    name: thoneti-web
+    env: docker
+    plan: free
+    envVars:
+      - key: DB_NAME
+        fromDatabase:
+          name: thoneti-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: thoneti-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: thoneti-db
+          property: password
+      - key: DB_HOST
+        fromDatabase:
+          name: thoneti-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: thoneti-db
+          property: port
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "thoneti-web.onrender.com"
